@@ -1,0 +1,177 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\StokOut;
+use App\Models\Inventori;
+use Illuminate\Http\Request;
+
+class StokOutController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        $stokOut = StokOut::with('inventori.kategoriInv')->get();
+        return response()->json($stokOut);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'nama_produk' => 'required|string|max:255',
+            'nama_kategori' => 'required|string|max:255',
+            'stokout_kuantitas' => 'required|integer|min:1',
+            'stokout_spesifikasi' => 'nullable|string|max:255',
+            'stokout_digunakan' => 'required|string|max:255',
+            'stokout_divisi' => 'required|string|max:255',
+            'stokout_keterangan' => 'required|string|max:255',
+            'stokin_tanggal' => 'required|date',
+            'produk_satuan' => 'required|string|max:255',
+            'produk_minimum_stok' => 'required|integer|min:0',
+        ]);
+
+        // Find or create the KategoriInv
+        $kategori = \App\Models\KategoriInv::firstOrCreate(
+            ['nama_kategori' => $validated['nama_kategori']]
+        );
+
+        // Find or create the Inventori item
+        $inventori = Inventori::firstOrCreate(
+            ['nama_produk' => $validated['nama_produk']],
+            [
+                'id_kategori' => $kategori->id_kategori,
+                'stok_awal' => 0, // Initial stok_awal for newly created product
+                'stok_akhir' => 0,
+                'stok_in' => 0,
+                'stok_out' => 0,
+                'produk_satuan' => $validated['produk_satuan'],
+                'produk_minimum_stok' => $validated['produk_minimum_stok'],
+                'bulan_sekarang' => now()->toDateString(),
+            ]
+        );
+
+        // Check if there's enough stock before creating stok-out
+        $potentialStokAkhir = ($inventori->stok_in == 0 ? $inventori->stok_awal : $inventori->stok_in) - ($inventori->stok_out + $validated['stokout_kuantitas']);
+        if ($potentialStokAkhir < 0) {
+            return response()->json(['message' => 'Stok tidak cukup untuk melakukan pengeluaran ini.'], 400);
+        }
+
+        $stokOut = StokOut::create([
+            'id_produk' => $inventori->id_produk,
+            'stokout_kuantitas' => $validated['stokout_kuantitas'],
+            'stokout_spesifikasi' => $validated['stokout_spesifikasi'],
+            'stokout_digunakan' => $validated['stokout_digunakan'],
+            'stokout_divisi' => $validated['stokout_divisi'],
+            'stokout_keterangan' => $validated['stokout_keterangan'],
+            'stokin_tanggal' => $validated['stokin_tanggal'],
+        ]);
+
+        // Update inventori stok
+        $inventori->stok_out += $validated['stokout_kuantitas'];
+        $this->updateInventoriStok($inventori);
+
+        return response()->json($stokOut, 201);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        $stokOut = StokOut::with('inventori.kategoriInv')->findOrFail($id);
+        return response()->json($stokOut);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        $stokOut = StokOut::findOrFail($id);
+        $inventori = $stokOut->inventori;
+
+        $oldKuantitas = $stokOut->stokout_kuantitas;
+
+        $validated = $request->validate([
+            'id_produk' => 'sometimes|required|exists:inventori,id_produk',
+            'stokout_kuantitas' => 'sometimes|required|integer|min:1',
+            'stokout_spesifikasi' => 'nullable|string|max:255',
+            'stokout_digunakan' => 'sometimes|required|string|max:255',
+            'stokout_divisi' => 'sometimes|required|string|max:255',
+            'stokout_keterangan' => 'sometimes|required|string|max:255',
+            'stokin_tanggal' => 'sometimes|required|date',
+        ]);
+
+        $stokOut->update($validated);
+
+        // Adjust inventori stok
+        $inventori->stok_out = $inventori->stok_out - $oldKuantitas + $stokOut->stokout_kuantitas;
+
+        // Check if there's enough stock after the update
+        $potentialStokAkhir = ($inventori->stok_in == 0 ? $inventori->stok_awal : $inventori->stok_in) - $inventori->stok_out;
+        if ($potentialStokAkhir < 0) {
+            return response()->json(['message' => 'Stok tidak cukup setelah perubahan kuantitas pengeluaran.'], 400);
+        }
+
+        $this->updateInventoriStok($inventori);
+
+        return response()->json($stokOut);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        $stokOut = StokOut::findOrFail($id);
+        $inventori = $stokOut->inventori;
+
+        // Revert stok changes
+        $inventori->stok_out -= $stokOut->stokout_kuantitas;
+        $this->updateInventoriStok($inventori);
+
+        $stokOut->delete();
+
+        return response()->json(null, 204);
+    }
+
+    /**
+     * Helper function to update inventori stok_akhir and produk_status.
+     */
+    protected function updateInventoriStok(Inventori $inventori)
+    {
+        if ($inventori->stok_in == 0) {
+            $inventori->stok_akhir = $inventori->stok_awal - $inventori->stok_out;
+        } else {
+            $inventori->stok_akhir = $inventori->stok_in - $inventori->stok_out;
+        }
+
+        if ($inventori->stok_akhir <= $inventori->produk_minimum_stok) {
+            $inventori->produk_status = 'Need Order';
+        } else {
+            $inventori->produk_status = 'Cukup';
+        }
+
+        $inventori->save();
+    }
+
+    public function getSummary()
+    {
+        $totalKategori = \App\Models\KategoriInv::count();
+        $totalProduk = Inventori::count();
+        $totalKuantitas = StokOut::sum('stokout_kuantitas');
+        $latestUpdate = StokOut::max('updated_at');
+
+        return response()->json([
+            'total_kategori' => $totalKategori,
+            'total_produk' => $totalProduk,
+            'total_kuantitas' => $totalKuantitas,
+            'latest_update' => $latestUpdate ? $latestUpdate : null,
+        ]);
+    }
+}

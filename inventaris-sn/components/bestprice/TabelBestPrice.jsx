@@ -1,0 +1,123 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import APIEndpoint from "@/app/api/api";
+
+export default function TabelBestPrice() {
+  const itemsPerPage = 20;
+  const [allData, setAllData] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const router = useRouter();
+
+  const totalPages = Math.ceil(allData.length / itemsPerPage);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await APIEndpoint.get("/api/part/best-prices");
+        setAllData(response.data);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const paginatedData = allData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm w-full">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4 p-4">
+        <h2 className="text-xl font-semibold text-[#383E49]">
+          Best Price Parts
+        </h2>
+        <div className="flex gap-2">
+          <button className="flex gap-x-2 border border-[#D0D3D9] px-3 py-2 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100">
+            <img src="/icons/Dashboard/Filter.svg" alt="Filter" className="w-4 h-4" />
+            Filters
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm text-left table-fixed">
+          <thead className="text-[#5D6679] border-b border-[#D0D3D9]">
+            <tr>
+              <th className="py-2 px-4 w-1/3">Produk</th>
+              <th className="py-2 px-4 whitespace-nowrap">Vendor</th>
+              <th className="py-2 px-4 whitespace-nowrap">Total Harga</th>
+              <th className="py-2 px-4 whitespace-nowrap">Timestamp</th>
+              <th className="py-2 px-4 whitespace-nowrap">Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedData.map((item) => (
+              <tr
+                key={item.part_id}
+                className="border-b text-[#383E49] border-[#D0D3D9]"
+              >
+                <td className="py-2 px-4 w-1/3">{item.part_name}</td>
+                <td className="py-2 px-4 whitespace-nowrap">{item.vendor_name}</td>
+                <td className="py-2 px-4 whitespace-nowrap">
+                  {new Intl.NumberFormat("id-ID", {
+                    style: "currency",
+                    currency: "IDR",
+                  }).format(item.harga_part)}
+                </td>
+                <td className="py-2 px-4 whitespace-nowrap">
+                  {new Date(item.timestamp).toLocaleDateString("id-ID")}
+                </td>
+                <td className="py-2 px-4 whitespace-nowrap">
+                  <button
+                    onClick={() => router.push(`/vendor/${item.vendor_id}/detailvendor`)}
+                    className="bg-[#1366D9] text-white px-3 py-1 rounded text-sm hover:bg-[#1570EF]"
+                  >
+                    Detail Vendor
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Pagination */}
+        <div className="flex justify-between items-center mt-4 px-4 text-sm text-[#5D6679] p-4">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            Previous
+          </button>
+          {allData.length > 0 ? (
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+          ) : (
+            <span>Page 1 of 1</span>
+          )}
+          <button
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage === totalPages}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
