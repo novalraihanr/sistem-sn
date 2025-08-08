@@ -175,9 +175,9 @@ class InventoriController extends Controller
         }
 
         $stockData = $query->selectRaw(
-            'MONTH(stokin_tanggal) as month,
-            SUM(stok_in) as total_stok_in,
-            SUM(stok_out) as total_stok_out'
+            'MONTH(stok_in.stokin_tanggal) as month,
+            SUM(stok_in.stokin_kuantitas) as total_stok_in,
+            SUM(stok_out.stokout_kuantitas) as total_stok_out'
         )
         ->join('stok_in', 'inventori.id_produk', '=', 'stok_in.id_produk')
         ->join('stok_out', 'inventori.id_produk', '=', 'stok_out.id_produk')

@@ -52,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('inventori/counts', [InventoriController::class, 'getCounts']);
     Route::get('inventori/find-by-name', [InventoriController::class, 'searchByName']);
     Route::get('inventori/monthly-stock-data', [InventoriController::class, 'getMonthlyStockData']);
+    Route::get('inventori/product-names', [InventoriController::class, 'getAllProductNames']);
     Route::apiResource('inventori', InventoriController::class);
 
     Route::get('stok-in/summary', [StokInController::class, 'getSummary']);
