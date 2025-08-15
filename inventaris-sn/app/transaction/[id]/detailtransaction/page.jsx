@@ -271,6 +271,8 @@ export default function DetailTransaction() {
                   <thead className="bg-[#F9FAFB] text-gray-500">
                     <tr>
                       <th className="px-4 py-2">Nama Part</th>
+                      <th className="px-4 py-2">Kode</th>
+                      <th className="px-4 py-2">Kategori</th>
                       <th className="px-4 py-2">Merk</th>
                       <th className="px-4 py-2">Harga</th>
                       <th className="px-4 py-2">Jumlah</th>
@@ -280,6 +282,7 @@ export default function DetailTransaction() {
                   </thead>
 
                   <tbody>
+                    {/* TAMBAHIN DATA BUAT KOLOM KODE DAN KATEGORI */}
                     {produkList.map((item, index) => (
                       <tr
                         key={item.id_transaksi_vendor}
@@ -363,7 +366,7 @@ export default function DetailTransaction() {
                   </tbody>
                   <tfoot className="bg-gray-50">
                     <tr>
-                      <td colSpan="3" className="text-right px-4 py-2 font-bold">Grand Total:</td>
+                      <td colSpan="6" className="text-right px-4 py-2 font-bold">Grand Total:</td>
                       <td className="px-4 py-2 font-bold">{`Rp ${totalHarga.toLocaleString("id-ID")}`}</td>
                       {isEditMode && <td></td>}
                     </tr>

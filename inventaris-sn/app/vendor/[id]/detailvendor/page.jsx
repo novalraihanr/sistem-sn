@@ -218,7 +218,7 @@ export default function DetailVendor() {
                 )}
                 <button
                   className="text-gray-400 hover:text-gray-600 text-3xl font-bold"
-                  onClick={() => router.push("/vendor")}
+                  onClick={() => router.back()}
                 >
                   &times;
                 </button>
@@ -229,6 +229,7 @@ export default function DetailVendor() {
               <h3 className="font-bold text-[#48505E] mb-5">
                 Detail Vendor
               </h3>
+              {/* INI KURANG KOLOM KODE VENDOR PAL */}
               <div className="grid gap-4 text-sm text-[#383E49]">
                 {Object.entries(formFields)
                   .filter(([key]) => !['id_vendor', 'created_at', 'updated_at', 'createdby', 'updatedby'].includes(key))
@@ -237,7 +238,7 @@ export default function DetailVendor() {
                       <p className="w-40 text-gray-500 capitalize pt-1">
                         {key
                           .replace(/_/g, " ")
-                          .replace(/\b\w/g, (c) => c.toUpperCase())}
+                          .replace(/\b\w/g, (c) => c.toUpperCase())} 
                       </p>
                       {key.includes("alamat") ? (
                         <textarea
@@ -276,7 +277,8 @@ export default function DetailVendor() {
                   <thead className="bg-[#F9FAFB] text-gray-500">
                     <tr>
                       <th className="px-4 py-2 w-[200px]">Produk</th>
-                      <th className="px-4 py-2">Unit</th>
+                      <th className="px-4 py-2">Kode</th>
+                      <th className="px-4 py-2">Kategori</th>
                       <th className="px-4 py-2">Harga Produk</th>
                       <th className="px-4 py-2">Satuan</th>
                       <th className="px-4 py-2">Merk Produk</th>
@@ -334,6 +336,7 @@ export default function DetailVendor() {
                     {/* ))} */}
 
                     {produkList.map((item, index) => (
+                      // TAMBAH KOLOM KATEGORI SAMA KODE PAL
                       <tr key={index} className="border-b border-gray-200 text-[#6B7280]">
                         {["nama_part", "harga_part", "merk_part"].map((field) => (
                           <td key={field} className="px-4 py-2">

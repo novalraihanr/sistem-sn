@@ -42,7 +42,7 @@ export default function StockOutSum() {
     <div className="bg-white rounded-lg shadow-sm w-full p-4">
       {/* Header */}
       <h2 className="text-xl font-semibold text-[#383E49] mb-7">
-        Keseluruhan Pengeluaran
+        Keseluruhan Inventori
       </h2>
 
       {/* Summary */}

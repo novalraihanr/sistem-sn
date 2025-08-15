@@ -209,6 +209,8 @@ export default function AddTransaction() {
                   <thead className="bg-[#F9FAFB] text-gray-500">
                     <tr>
                       <th className="px-4 py-2 w-[200px]">Nama Part</th>
+                      <th className="px-4 py-2">Kode</th>
+                      <th className="px-4 py-2">Kategori</th>
                       <th className="px-4 py-2">Merk</th>
                       <th className="px-4 py-2">Harga</th>
                       <th className="px-4 py-2">Jumlah</th>
@@ -228,6 +230,26 @@ export default function AddTransaction() {
                               onChange={(e) =>
                                 handleChange(index, "part_name", e.target.value)
                               }
+                            />
+                          </div>
+                        </td>
+                        {/* INI KOLOM BARU */}
+                        <td className="px-4 py-2">
+                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                            <input
+                              type="text"
+                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              value="Dummy"
+                            />
+                          </div>
+                        </td>
+                        {/* INI KOLOM BARU */}
+                        <td className="px-4 py-2">
+                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                            <input
+                              type="text"
+                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              value="Dummy"
                             />
                           </div>
                         </td>

@@ -38,10 +38,11 @@ export default function TabelBestPrice() {
           Best Price Parts
         </h2>
         <div className="flex gap-2">
-          <button className="flex gap-x-2 border border-[#D0D3D9] px-3 py-2 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100">
-            <img src="/icons/Dashboard/Filter.svg" alt="Filter" className="w-4 h-4" />
-            Filters
-          </button>
+          <input
+            type="text"
+            placeholder="Search produk..."
+            className="border border-gray-300 px-3 py-2 rounded-sm text-sm focus:outline-none focus:ring focus:border-blue-300"
+          />
         </div>
       </div>
 
@@ -64,7 +65,9 @@ export default function TabelBestPrice() {
                 className="border-b text-[#383E49] border-[#D0D3D9]"
               >
                 <td className="py-2 px-4 w-1/3">{item.part_name}</td>
-                <td className="py-2 px-4 whitespace-nowrap">{item.vendor_name}</td>
+                <td className="py-2 px-4 whitespace-nowrap">
+                  {item.vendor_name}
+                </td>
                 <td className="py-2 px-4 whitespace-nowrap">
                   {new Intl.NumberFormat("id-ID", {
                     style: "currency",
@@ -76,10 +79,12 @@ export default function TabelBestPrice() {
                 </td>
                 <td className="py-2 px-4 whitespace-nowrap">
                   <button
-                    onClick={() => router.push(`/vendor/${item.vendor_id}/detailvendor`)}
+                    onClick={() =>
+                      router.push(`/vendor/${item.vendor_id}/detailvendor`)
+                    }
                     className="bg-[#1366D9] text-white px-3 py-1 rounded text-sm hover:bg-[#1570EF]"
                   >
-                    Detail Vendor
+                    Detail Parts
                   </button>
                 </td>
               </tr>

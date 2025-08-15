@@ -54,10 +54,16 @@ const navItemsMain = [
     iconActive: "/icons/Parts-active.svg",
   },
   {
-    label: "Unit",
-    href: "/unit",
-    icon: "/icons/Unit.svg",
-    iconActive: "/icons/Unit-active.svg",
+    label: "User",
+    href: "/user",
+    icon: "/icons/User.svg",
+    iconActive: "/icons/User-active.svg",
+  },
+  {
+    label: "History User",
+    href: "/history",
+    icon: "/icons/History.svg",
+    iconActive: "/icons/History-active.svg",
   },
 ];
 
@@ -75,12 +81,6 @@ export default function Sidebar() {
   };
 
   const navItemsBottom = [
-    {
-      label: "Settings",
-      href: "/settings",
-      icon: "/icons/Settings.svg",
-      iconActive: "/icons/Settings-active.svg",
-    },
     {
       label: "Log Out",
       onClick: handleLogout,

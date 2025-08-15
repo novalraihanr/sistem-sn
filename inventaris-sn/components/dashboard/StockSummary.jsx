@@ -12,29 +12,6 @@ export default function StockSummary() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("Parts");
 
-  const dummyParts = [
-    "Parts",
-    "Stage 1",
-    "Stage 2",
-    "Rigging",
-    "Barricade",
-    "Truss 1",
-    "Truss 2",
-    "Melamin",
-    "Backdrop",
-    "Lighting",
-    "Audio",
-    "Cable",
-    "Screen",
-    "Podium",
-    "Chair",
-    "Table",
-    "Generator",
-    "Tent",
-    "Cooling Fan",
-    "Booth",
-  ];
-
   const [stockData, setStockData] = useState({
     in: Array(12).fill(0),
     out: Array(12).fill(0),

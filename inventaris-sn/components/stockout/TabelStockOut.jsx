@@ -43,7 +43,7 @@ export default function TabelStockOut() {
   // Debounce function
   const debounce = (func, delay) => {
     let timeout;
-    return function(...args) {
+    return function (...args) {
       const context = this;
       clearTimeout(timeout);
       timeout = setTimeout(() => func.apply(context, args), delay);
@@ -53,7 +53,9 @@ export default function TabelStockOut() {
   // Fetch product data
   const fetchProductData = async (productName) => {
     try {
-      const res = await APIEndpoint.get("/api/inventori/find-by-name", { params: { nama_produk: productName } });
+      const res = await APIEndpoint.get("/api/inventori/find-by-name", {
+        params: { nama_produk: productName },
+      });
       setProductSuggestions(res.data); // Set suggestions
       const fetchedProduct = res.data[0]; // Get the first item from the array
       if (fetchedProduct) {
@@ -118,7 +120,7 @@ export default function TabelStockOut() {
         stokin_tanggal: formData.tanggal,
         // These fields are required by the backend but not directly from the form
         // They will be derived or set to default values in the backend
-        
+
         nama_kategori: formData.nama_kategori,
         produk_minimum_stok: formData.produk_minimum_stok,
         produk_satuan: formData.satuan, // Use the satuan from the form
@@ -133,19 +135,74 @@ export default function TabelStockOut() {
       fetchData(); // Refetch data after successful submission
     } catch (error) {
       console.error("Error adding stock out:", error);
-      alert("Failed to add stock out: " + (error.response?.data?.message || error.message));
+      alert(
+        "Failed to add stock out: " +
+          (error.response?.data?.message || error.message)
+      );
     }
   };
 
+  // State filter
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedYear, setSelectedYear] = useState("all");
+
+  // Ambil bulan & tahun unik dari data
+  const monthsMap = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+
+  // Tahun unik
+  const years = [
+    ...new Set(
+      produkData.map((item) => new Date(item.stokin_tanggal).getFullYear())
+    ),
+  ].sort((a, b) => b - a);
+
+  // Bulan unik (dari semua data, tapi tetap nama bulan urut)
+  const availableMonths = [
+    ...new Set(
+      produkData.map((item) => new Date(item.stokin_tanggal).getMonth() + 1)
+    ),
+  ]
+    .sort((a, b) => a - b)
+    .map((monthNum) => ({
+      value: String(monthNum),
+      label: monthsMap[monthNum - 1],
+    }));
+
+  // Filter data
   const filteredData = produkData
-    .filter((item) =>
-      item.inventori && item.inventori.nama_produk.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .sort((a, b) => {
-      const dateA = new Date(a.stokin_tanggal);
-      const dateB = new Date(b.stokin_tanggal);
-      return dateB - dateA;
-    });
+    .filter((item) => {
+      const date = new Date(item.stokin_tanggal);
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+
+      const monthMatch =
+        selectedMonth === "all" || parseInt(selectedMonth) === month;
+      const yearMatch =
+        selectedYear === "all" || parseInt(selectedYear) === year;
+
+      return (
+        item.inventori &&
+        item.inventori.nama_produk
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) &&
+        monthMatch &&
+        yearMatch
+      );
+    })
+    .sort((a, b) => new Date(b.stokin_tanggal) - new Date(a.stokin_tanggal));
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
@@ -198,10 +255,55 @@ export default function TabelStockOut() {
               >
                 + Tambah Stock Out
               </button>
-              <button className="flex gap-x-2 border border-[#D0D3D9] px-3 py-2 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100">
-                <img src="/icons/Dashboard/Filter.svg" alt="Filter" className="w-4 h-4" />
-                Filters
-              </button>
+              
+              {/* Filter Bulan */}
+              <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
+                <img
+                  src="/icons/Dashboard/Filter.svg"
+                  alt="filter"
+                  className="w-4 h-4"
+                />
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => {
+                    setSelectedMonth(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center"
+                >
+                  <option value="all">Semua Bulan</option>
+                  {availableMonths.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter Tahun */}
+              <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
+                <img
+                  src="/icons/Dashboard/Filter.svg"
+                  alt="filter"
+                  className="w-4 h-4"
+                />
+                <select
+                  value={selectedYear}
+                  onChange={(e) => {
+                    setSelectedYear(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center"
+                >
+                  <option value="all">Semua Tahun</option>
+                  {years.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button className="border border-[#D0D3D9] px-3 py-2 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100">
                 Download all
               </button>
@@ -239,8 +341,12 @@ export default function TabelStockOut() {
                       {item.inventori?.nama_produk}
                     </td>
                     <td className="py-2 px-4">{item.stokout_kuantitas}</td>
-                    <td className="py-2 px-4">{item.stokout_spesifikasi || "-"}</td>
-                    <td className="py-2 px-4">{item.inventori?.produk_satuan}</td>
+                    <td className="py-2 px-4">
+                      {item.stokout_spesifikasi || "-"}
+                    </td>
+                    <td className="py-2 px-4">
+                      {item.inventori?.produk_satuan}
+                    </td>
                     <td className="py-2 px-4">{item.stokout_digunakan}</td>
                     <td className="py-2 px-4">{item.stokout_divisi}</td>
                     <td className="py-2 px-4">{item.stokout_keterangan}</td>
@@ -344,12 +450,17 @@ export default function TabelStockOut() {
                           }
                           className={`w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-300`}
                           required={required}
-                          list={name === "name" ? "product-suggestions" : undefined}
+                          list={
+                            name === "name" ? "product-suggestions" : undefined
+                          }
                         />
                         {name === "name" && productSuggestions.length > 0 && (
                           <datalist id="product-suggestions">
                             {productSuggestions.map((product) => (
-                              <option key={product.id_produk} value={product.nama_produk} />
+                              <option
+                                key={product.id_produk}
+                                value={product.nama_produk}
+                              />
                             ))}
                           </datalist>
                         )}

@@ -1,9 +1,9 @@
-import axios from "../api/api.jsx";
+import APIEndpoint from "../api/api.jsx";
 
 export const login = async (email, password) => {
-  await axios.get('/sanctum/csrf-cookie');
+  await APIEndpoint.get('/sanctum/csrf-cookie');
 
-  return axios.post('/api/login', {
+  return APIEndpoint.post('/api/login', {
     email,
     password,
   })
@@ -14,5 +14,5 @@ export const getUser = async () => {
 }
 
 export const logout = async () => {
-  return axios.post('/api/logout');
+  return APIEndpoint.post('/api/logout');
 }

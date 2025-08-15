@@ -48,7 +48,7 @@ export default function InvProSummary() {
             <p className="unit-num text-[#5D6679] text-sm font-bold mt-2">
               31
             </p>
-            <p className="text-xs text-[#5D6679]">Jumlah Unit</p>
+            <p className="text-xs text-[#5D6679]">Jumlah Part</p>
           </div>
         </div>
       </div>

@@ -12,6 +12,12 @@ export default function TabelTransaction() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Filter state
+  const [bulanList, setBulanList] = useState([]);
+  const [tahunList, setTahunList] = useState([]);
+  const [selectedBulan, setSelectedBulan] = useState("all");
+  const [selectedTahun, setSelectedTahun] = useState("all");
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -22,18 +28,24 @@ export default function TabelTransaction() {
         const groupedData = rawData.reduce((acc, item) => {
           const transId = item.id_transaksi;
           if (!acc[transId]) {
+            const createdAt = item.transaksi?.created_at
+              ? new Date(item.transaksi.created_at)
+              : null;
+
             acc[transId] = {
               id_transaksi: transId,
               vendor: item.vendor_part?.vendor?.nama_vendor || "N/A",
               kode: `TRX-${transId}`,
               produk: [],
               total_harga: item.transaksi?.total || 0,
-              timestamp: item.transaksi?.created_at
-                ? new Date(item.transaksi.created_at).toLocaleString("id-ID", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })
+              timestamp: createdAt
+                ? createdAt.toLocaleString("id-ID", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })
                 : "N/A",
+              bulan: createdAt ? createdAt.getMonth() + 1 : null, // bulan 1-12
+              tahun: createdAt ? createdAt.getFullYear() : null,
             };
           }
           acc[transId].produk.push(
@@ -43,6 +55,18 @@ export default function TabelTransaction() {
         }, {});
 
         const processedData = Object.values(groupedData);
+
+        // Ambil list bulan & tahun unik
+        const bulanSet = new Set();
+        const tahunSet = new Set();
+
+        processedData.forEach((item) => {
+          if (item.bulan) bulanSet.add(item.bulan);
+          if (item.tahun) tahunSet.add(item.tahun);
+        });
+
+        setBulanList([...bulanSet].sort((a, b) => a - b));
+        setTahunList([...tahunSet].sort((a, b) => b - a)); // tahun terbaru dulu
         setData(processedData);
       } catch (error) {
         console.error("Failed to fetch transaction data:", error);
@@ -53,12 +77,20 @@ export default function TabelTransaction() {
     fetchData();
   }, []);
 
+  // Filter by search + bulan + tahun
   const filteredData = data
     .filter((item) =>
       item.produk.some((p) =>
         p.toLowerCase().includes(searchQuery.toLowerCase())
       )
     )
+    .filter((item) => {
+      const matchBulan =
+        selectedBulan === "all" || item.bulan === parseInt(selectedBulan);
+      const matchTahun =
+        selectedTahun === "all" || item.tahun === parseInt(selectedTahun);
+      return matchBulan && matchTahun;
+    })
     .sort((a, b) => b.id_transaksi - a.id_transaksi);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
@@ -98,14 +130,57 @@ export default function TabelTransaction() {
             + Tambah Transaksi
           </Link>
 
-          <button className="flex gap-x-2 border border-[#D0D3D9] px-3 py-2 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100">
-            <img
-              src="/icons/Dashboard/Filter.svg"
-              alt="Filter"
-              className="w-4 h-4"
-            />
-            Filters
-          </button>
+          <div className="flex items-center gap-x-2">
+            {/* Filter Bulan */}
+            <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
+              <img
+                src="/icons/Dashboard/Filter.svg"
+                alt="filter"
+                className="w-4 h-4"
+              />
+              <select
+                value={selectedBulan}
+                onChange={(e) => {
+                  setSelectedBulan(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center"
+              >
+                <option value="all">Semua Bulan</option>
+                {bulanList.map((b) => (
+                  <option key={b} value={b}>
+                    {new Date(0, b - 1).toLocaleString("id-ID", {
+                      month: "long",
+                    })}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Tahun */}
+            <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
+              <img
+                src="/icons/Dashboard/Filter.svg"
+                alt="filter"
+                className="w-4 h-4"
+              />
+              <select
+                value={selectedTahun}
+                onChange={(e) => {
+                  setSelectedTahun(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center"
+              >
+                <option value="all">Semua Tahun</option>
+                {tahunList.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -170,8 +245,9 @@ export default function TabelTransaction() {
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 && "opacity-50 cursor-not-allowed"
-              }`}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+              currentPage === 1 && "opacity-50 cursor-not-allowed"
+            }`}
           >
             Previous
           </button>
@@ -183,8 +259,9 @@ export default function TabelTransaction() {
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
             disabled={currentPage === totalPages}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages && "opacity-50 cursor-not-allowed"
-              }`}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+              currentPage === totalPages && "opacity-50 cursor-not-allowed"
+            }`}
           >
             Next
           </button>

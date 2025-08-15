@@ -55,10 +55,6 @@ export default function TabelTransaction() {
           >
             + Tambah Vendor
           </Link>
-          <button className="flex gap-x-2 border border-[#D0D3D9] px-3 py-2 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100">
-            <img src="/icons/Dashboard/Filter.svg" alt="Filter" className="w-4 h-4" />
-            Filters
-          </button>
         </div>
       </div>
 
@@ -117,8 +113,9 @@ export default function TabelTransaction() {
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             Previous
           </button>
@@ -131,8 +128,9 @@ export default function TabelTransaction() {
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
             disabled={currentPage === totalPages}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             Next
           </button>

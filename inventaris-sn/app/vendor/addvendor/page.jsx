@@ -12,7 +12,7 @@ export default function AddTransaction() {
   const handleTambahVendor = () => {
     setProdukList([
       ...produkList,
-      { nama: "", unit: "", harga: 0, satuan: "", jumlah: 0, merk: "" },
+      { nama: "", kode: "", kategori: "", harga: 0, satuan: "", jumlah: 0, merk: "" },
     ]);
   };
 
@@ -109,7 +109,8 @@ export default function AddTransaction() {
                   <thead className="bg-[#F9FAFB] text-gray-500">
                     <tr>
                       <th className="px-4 py-2 w-[200px]">Produk</th>
-                      <th className="px-4 py-2">Unit</th>
+                      <th className="px-4 py-2">Kode</th>
+                      <th className="px-4 py-2">Kategori</th>
                       <th className="px-4 py-2">Harga Produk</th>
                       <th className="px-4 py-2">Satuan</th>
                       <th className="px-4 py-2">Merk Produk</th>
@@ -136,9 +137,21 @@ export default function AddTransaction() {
                             <input
                               type="text"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
-                              value={produk.unit}
+                              value={produk.kode}
                               onChange={(e) =>
-                                handleChange(index, "unit", e.target.value)
+                                handleChange(index, "kode", e.target.value)
+                              }
+                            />
+                          </div>
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                            <input
+                              type="text"
+                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              value={produk.kategori}
+                              onChange={(e) =>
+                                handleChange(index, "kode", e.target.value)
                               }
                             />
                           </div>

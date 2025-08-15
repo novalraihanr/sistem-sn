@@ -160,7 +160,7 @@ export default function TabelInv() {
               {/* Filter dan Download */}
               <div className="flex gap-x-2">
                 {/* Button Filter */}
-                <div className="flex items-center gap-x-4">
+                <div className="flex items-center gap-x-2">
                   {/* Select Kategori */}
                   <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
                     <img
