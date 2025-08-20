@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Http\Controllers\HistoryUsersController;
+use Illuminate\Support\Facades\Auth;
 
 class PasswordController extends Controller
 {
@@ -33,6 +35,11 @@ class PasswordController extends Controller
         $request->user()->update([
             'password' => Hash::make($validated['password']),
         ]);
+
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah mengupdate passwordnya.");
+        }
 
         return back();
     }

@@ -1,27 +1,44 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
+import APIEndpoint from "@/app/api/api";
 
 export default function TabelUser() {
-  const router = useRouter(); 
+  const router = useRouter();
 
-  const dataAwal = [
-    { username: "Bambank", password: "User1" },
-    { username: "Budi", password: "User2" },
-    { username: "Bagus", password: "User 3" },
-  ];
-
-  const [data, setData] = useState(dataAwal);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const dataPerHalaman = 20;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await APIEndpoint.get("/api/users");
+        setData(response.data);
+      } catch (err) {
+        if (err.response) {
+          setError(`Error: ${err.response.status} ${err.response.statusText} - ${JSON.stringify(err.response.data)}`);
+        } else if (err.request) {
+          setError("Error: No response from server. Is the backend running on port 8000?");
+        } else {
+          setError(`Error: ${err.message}`);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     setPage(1);
   }, [search]);
 
   const filteredData = data.filter((u) =>
-    u.username.toLowerCase().includes(search.toLowerCase())
+    u.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalHalaman = Math.max(
@@ -40,6 +57,14 @@ export default function TabelUser() {
     startIndex,
     startIndex + dataPerHalaman
   );
+
+  if (loading) {
+    return <div className="text-center p-4">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center p-4 text-red-500">{error}</div>;
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm w-full">
@@ -67,19 +92,19 @@ export default function TabelUser() {
       <table className="w-full text-sm text-left border-gray-200">
         <thead className="text-gray-500">
           <tr>
-            <th className="px-4 py-2">Username</th>
-            <th className="px-4 py-2">Password</th>
+            <th className="px-4 py-2">Name</th>
+            <th className="px-4 py-2">Email</th>
             <th className="px-4 py-2">Detail</th>
           </tr>
         </thead>
         <tbody>
-          {currentData.map((u, i) => (
-            <tr key={i} className="border-t border-gray-200">
-              <td className="px-4 py-2">{u.username}</td>
-              <td className="px-4 py-2">{u.password}</td>
+          {currentData.map((u) => (
+            <tr key={u.id} className="border-t border-gray-200">
+              <td className="px-4 py-2">{u.name}</td>
+              <td className="px-4 py-2">{u.email}</td>
               <td className="px-4 py-2">
                 <button
-                  onClick={() => router.push('/user/detailuser')} //Ini bisa diganti pal sesuai selera
+                  onClick={() => router.push(`/user/detailuser/${u.id}`)}
                   className="bg-[#1366D9] text-white text-sm px-3 py-1 rounded-sm hover:bg-[#1570EF]"
                 >
                   Detail User
@@ -113,3 +138,4 @@ export default function TabelUser() {
     </div>
   );
 }
+

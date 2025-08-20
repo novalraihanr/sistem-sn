@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Part;
 use App\Models\Vendor;
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -14,24 +15,21 @@ class VendorPartSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create specific parts if they don't exist
-        $partNames = ['bolt', 'mechanical', 'electrical'];
-        $specificParts = collect();
-        foreach ($partNames as $name) {
-            $specificParts->push(Part::firstOrCreate(['nama_part' => $name]));
-        }
+        $parts = Part::all();
+        $users = User::all();
+        Vendor::factory(10)->create();
+        $vendors = Vendor::all();
 
-        Vendor::factory()->count(5)->create()->each(function ($vendor) use ($specificParts) {
-            // Attach 2 random parts from the specific parts list to each vendor
-            $partsToAttach = $specificParts->random(2);
-
+        foreach ($vendors as $vendor) {
+            $partsToAttach = $parts->random(rand(5, 10));
             foreach ($partsToAttach as $part) {
-                $vendor->parts()->attach($part->getKey(), [
-                    'harga_part' => rand(10000, 100000),
-                    'merk_part' => 'Merk ' . rand(1, 100),
-                    'createdby' => 'system'
+                $vendor->parts()->attach($part->id_part, [
+                    'harga_part' => rand(10000, 1000000),
+                    'merk_part' => fake()->company(),
+                    'satuan_part' => fake()->randomElement(['Pcs', 'Unit', 'Box']),
+                    'createdby' => $users->random()->name,
                 ]);
             }
-        });
+        }
     }
 }

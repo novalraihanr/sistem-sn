@@ -14,11 +14,11 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await login(email, password);
-      router.push("/dashboard")
+      router.push("/dashboard");
       const user = await getUser();
       console.log(user.data);
     } catch (error) {
-      console.error("Login failed:", error.response.data);
+      console.error("Login failed:", error.response);
     }
   };
 

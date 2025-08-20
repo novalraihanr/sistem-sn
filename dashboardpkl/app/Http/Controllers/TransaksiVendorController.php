@@ -7,6 +7,8 @@ use App\Models\VendorPart;
 use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\HistoryUsersController;
 
 class TransaksiVendorController extends Controller
 {
@@ -63,6 +65,11 @@ class TransaksiVendorController extends Controller
                 'createdby' => auth()->id(),
             ]);
 
+            $user = Auth::user();
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah membuat transaksi vendor baru untuk part: {$vendorPart->part->nama_part} dari vendor: {$vendorPart->vendor->nama_vendor}");
+            }
+
             DB::commit();
 
             return response()->json([
@@ -90,6 +97,11 @@ class TransaksiVendorController extends Controller
         try {
             $transaksiVendor->update($validated);
 
+            $user = Auth::user();
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah mengupdate transaksi vendor: {$transaksiVendor->id_transaksi_vendor}");
+            }
+
             return response()->json([
                 'message' => 'Vendor transaction updated successfully.',
                 'data' => $transaksiVendor,
@@ -105,6 +117,10 @@ class TransaksiVendorController extends Controller
     public function destroy(TransaksiVendor $transaksiVendor)
     {
         try {
+            $user = Auth::user();
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah menghapus transaksi vendor: {$transaksiVendor->id_transaksi_vendor}");
+            }
             $transaksiVendor->delete();
 
             return response()->json(['message' => 'Vendor transaction deleted successfully.']);
@@ -129,7 +145,8 @@ class TransaksiVendorController extends Controller
         DB::beginTransaction();
 
         try {
-            $userId = auth()->id();
+            $user = Auth::user();
+            $userId = $user ? $user->id : null;
 
             // Create a single Transaksi record for the entire multi-part transaction
             $transaksi = Transaksi::create([
@@ -160,6 +177,10 @@ class TransaksiVendorController extends Controller
                     'total_harga' => $item['total_harga'],
                     'createdby' => $userId,
                 ]);
+            }
+            
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah membuat transaksi multi-part baru dengan total: {$transaksi->total}");
             }
 
             DB::commit();

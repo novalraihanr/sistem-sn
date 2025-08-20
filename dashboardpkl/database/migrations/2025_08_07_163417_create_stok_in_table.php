@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamps();
 
 
-            $table->foreign('id_produk')->references('id_produk')->on('inventori');
+            $table->foreign('id_produk')->references('id_produk')->on('inventori')->onDelete('cascade');
         });
     }
 

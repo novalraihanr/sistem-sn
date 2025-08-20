@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Transaksi;
 use App\Models\TransaksiVendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\HistoryUsersController;
 
 class TransaksiController extends Controller
 {
@@ -34,6 +36,11 @@ class TransaksiController extends Controller
 
         $transaksi = Transaksi::create($request->all());
 
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah membuat transaksi baru dengan total: {$transaksi->total}");
+        }
+
         return response()->json($transaksi, 201);
     }
 
@@ -56,7 +63,13 @@ class TransaksiController extends Controller
         ]);
 
         $transaksi = Transaksi::findOrFail($id);
+        $oldTotal = $transaksi->total;
         $transaksi->update($request->all());
+
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah mengupdate transaksi: {$id} dari total {$oldTotal} menjadi {$transaksi->total}");
+        }
 
         return response()->json($transaksi);
     }
@@ -67,6 +80,11 @@ class TransaksiController extends Controller
     public function destroy(string $id)
     {
         $transaksi = Transaksi::findOrFail($id);
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah menghapus transaksi: {$id}");
+        }
+
         // Delete all associated TransaksiVendor records first
         $transaksi->transaksivendor()->delete();
         $transaksi->delete();

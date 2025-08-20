@@ -1,79 +1,52 @@
-"use client";
-import { useState } from "react";
+'use client';
+import { useState, useEffect } from 'react';
+import APIEndpoint from '../../app/api/api';
 
 export default function TabelHistory() {
-  const historyData = [
-    {
-      tanggal: "15/7/2025",
-      jam: "19:15:30",
-      keterangan: "Menambahkan transaksi",
-      user: "Budi",
-    },
-    {
-      tanggal: "15/7/2025",
-      jam: "20:15:30",
-      keterangan: "Mengedit kategori parts",
-      user: "Asep",
-    },
-    {
-      tanggal: "16/7/2025",
-      jam: "09:45:10",
-      keterangan: "Menghapus produk",
-      user: "Andi",
-    },
-    {
-      tanggal: "17/7/2025",
-      jam: "14:20:50",
-      keterangan: "Menambahkan user baru",
-      user: "Dewi",
-    },
-    {
-      tanggal: "17/7/2025",
-      jam: "15:30:00",
-      keterangan: "Mengedit harga produk",
-      user: "Fajar",
-    },
-    {
-      tanggal: "18/7/2025",
-      jam: "11:15:45",
-      keterangan: "Membuat laporan bulanan",
-      user: "Sari",
-    },
-    {
-      tanggal: "19/7/2025",
-      jam: "16:10:25",
-      keterangan: "Mengedit transaksi",
-      user: "Rudi",
-    },
-  ];
-
-  const [searchTerm, setSearchTerm] = useState("");
+  const [historyData, setHistoryData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20; // jumlah data per halaman
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Filter pencarian
-  const filteredData = historyData.filter((item) =>
-    item.user.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const response = await APIEndpoint.get(
+          `/api/historyusers?page=${currentPage}`
+        );
+        setHistoryData(response.data.data);
+        setTotalPages(response.data.last_page);
+        setCurrentPage(response.data.current_page);
+      } catch (error) {
+        console.error('Error fetching history data:', error);
+      }
+    };
+
+    fetchHistory();
+  }, [currentPage]);
+
+  // Filter pencarian (client-side)
+  const filteredData = historyData.filter(
+    (item) =>
+      item.user &&
+      item.user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Pagination
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentData = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-
   const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
   };
+
   const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
   };
 
   // Reset ke halaman 1 saat search berubah
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1);
   };
 
   return (
@@ -103,13 +76,15 @@ export default function TabelHistory() {
           </tr>
         </thead>
         <tbody>
-          {currentData.length > 0 ? (
-            currentData.map((item, i) => (
+          {filteredData.length > 0 ? (
+            filteredData.map((item, i) => (
               <tr key={i} className="border-t border-gray-200">
                 <td className="px-4 py-2">{item.tanggal}</td>
                 <td className="px-4 py-2">{item.jam}</td>
                 <td className="px-4 py-2">{item.keterangan}</td>
-                <td className="px-4 py-2">{item.user}</td>
+                <td className="px-4 py-2">
+                  {item.user ? item.user.name : 'System'}
+                </td>
               </tr>
             ))
           ) : (
@@ -127,11 +102,10 @@ export default function TabelHistory() {
         <button
           onClick={handlePrevPage}
           disabled={currentPage === 1}
-          className={`border border-gray-300 px-3 py-1 rounded ${
-            currentPage === 1
-              ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-gray-100"
-          }`}
+          className={`border border-gray-300 px-3 py-1 rounded ${currentPage === 1
+              ? 'opacity-50 cursor-not-allowed'
+              : 'hover:bg-gray-100'
+            }`}
         >
           Previous
         </button>
@@ -141,11 +115,10 @@ export default function TabelHistory() {
         <button
           onClick={handleNextPage}
           disabled={currentPage === totalPages || totalPages === 0}
-          className={`border border-gray-300 px-3 py-1 rounded ${
-            currentPage === totalPages || totalPages === 0
-              ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-gray-100"
-          }`}
+          className={`border border-gray-300 px-3 py-1 rounded ${currentPage === totalPages || totalPages === 0
+              ? 'opacity-50 cursor-not-allowed'
+              : 'hover:bg-gray-100'
+            }`}
         >
           Next
         </button>

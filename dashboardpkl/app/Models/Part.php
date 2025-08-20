@@ -4,14 +4,30 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Str;
 
 class Part extends Model
 {
     use HasFactory;
     protected $table = 'part';
     protected $primaryKey = 'id_part';
-    protected $fillable = ['nama_part'];
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'id_part',
+        'nama_part',
+        'id_kategori_part',
+        'createdby',
+        'updatedby'
+    ];
+
+    public function kategoriPart(): BelongsTo
+    {
+        return $this->belongsTo(KategoriPart::class, 'id_kategori_part');
+    }
 
     public function units(): BelongsToMany
     {

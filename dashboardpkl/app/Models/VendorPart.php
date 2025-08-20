@@ -12,7 +12,7 @@ class VendorPart extends Pivot
     protected $primaryKey = 'id_vendorpart';
     public $incrementing = true; // Since you have a primary key
 
-    protected $fillable = ['id_part', 'id_vendor', 'harga_part', 'harga_sebelumnya_part', 'merk_part', 'updatedby', 'createdby'];
+    protected $fillable = ['id_part', 'id_vendor', 'harga_part', 'harga_sebelumnya_part', 'merk_part', 'satuan_part', 'updatedby', 'createdby'];
 
     /**
      * Get the vendor that owns the part.

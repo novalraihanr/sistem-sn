@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\KategoriPart;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +18,8 @@ class PartFactory extends Factory
     public function definition(): array
     {
         return [
-            'nama_part' => $this->faker->word,
+            'nama_part' => fake()->randomElement(['Engine Block', 'Cylinder Head', 'Crankshaft', 'Piston', 'Spark Plug', 'Brake Pad', 'Oil Filter', 'Air Filter', 'Excavator Bucket', 'Bulldozer Blade', 'Concrete Mixer', 'Welding Machine', 'Safety Helmet', 'Work Gloves']),
+            'id_kategori_part' => KategoriPart::factory(),
         ];
     }
 }

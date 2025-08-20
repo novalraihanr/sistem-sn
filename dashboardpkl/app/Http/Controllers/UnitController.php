@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Unit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\HistoryUsersController;
 
 class UnitController extends Controller
 {
@@ -28,6 +30,11 @@ class UnitController extends Controller
 
         $unit = Unit::create($request->all());
 
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah menambahkan unit baru: {$unit->nama_unit}");
+        }
+
         return response()->json($unit, 201);
     }
 
@@ -51,7 +58,13 @@ class UnitController extends Controller
         ]);
 
         $unit = Unit::findOrFail($id);
+        $oldName = $unit->nama_unit;
         $unit->update($request->all());
+
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah mengupdate unit: {$oldName} menjadi {$unit->nama_unit}");
+        }
 
         return response()->json($unit);
     }
@@ -62,6 +75,10 @@ class UnitController extends Controller
     public function destroy(string $id)
     {
         $unit = Unit::findOrFail($id);
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah menghapus unit: {$unit->nama_unit}");
+        }
         $unit->delete();
 
         return response()->json(null, 204);

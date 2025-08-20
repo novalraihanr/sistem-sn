@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Inventori;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\HistoryUsersController;
 
 class InventoriController extends Controller
 {
@@ -47,6 +48,11 @@ class InventoriController extends Controller
             'bulan_sekarang' => now()->toDateString(),
         ]);
 
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah menambahkan inventori baru: {$inventori->nama_produk}");
+        }
+
         $this->updateProdukStatus($inventori);
 
         return response()->json($inventori, 201);
@@ -67,6 +73,7 @@ class InventoriController extends Controller
     public function update(Request $request, string $id)
     {
         $inventori = Inventori::findOrFail($id);
+        $oldName = $inventori->nama_produk;
 
         $validated = $request->validate([
             'nama_kategori' => 'sometimes|required|string|max:255',
@@ -85,6 +92,11 @@ class InventoriController extends Controller
         }
 
         $inventori->update($validated);
+        
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah mengupdate inventori: {$oldName}");
+        }
 
         // Recalculate produk_status if relevant fields changed
         if (isset($validated['stok_awal']) || isset($validated['produk_minimum_stok']) || isset($validated['nama_produk']) || isset($validated['nama_kategori'])) {
@@ -100,6 +112,10 @@ class InventoriController extends Controller
     public function destroy(string $id)
     {
         $inventori = Inventori::findOrFail($id);
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah menghapus inventori: {$inventori->nama_produk}");
+        }
         $inventori->delete();
 
         return response()->json(null, 204);

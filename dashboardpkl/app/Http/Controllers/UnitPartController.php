@@ -6,6 +6,8 @@ use App\Models\Unit;
 use App\Models\Part;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\HistoryUsersController;
 
 class UnitPartController extends Controller
 {
@@ -27,7 +29,13 @@ class UnitPartController extends Controller
 
         try {
             $unit = Unit::findOrFail($validated['unit_id']);
+            $part = Part::findOrFail($validated['part_id']);
             $unit->parts()->attach($validated['part_id'], ['stok' => $validated['stok']]);
+
+            $user = Auth::user();
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah menambahkan part {$part->nama_part} ke unit {$unit->nama_unit}");
+            }
 
             return response()->json(['message' => 'Part added to unit successfully.'], 201);
         } catch (\Exception $e) {
@@ -43,7 +51,13 @@ class UnitPartController extends Controller
 
         try {
             $unit = Unit::findOrFail($unitId);
+            $part = Part::findOrFail($partId);
             $unit->parts()->updateExistingPivot($partId, ['stok' => $validated['stok']]);
+
+            $user = Auth::user();
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah mengupdate stok part {$part->nama_part} di unit {$unit->nama_unit}");
+            }
 
             return response()->json(['message' => 'Stok updated successfully.'], 200);
         } catch (\Exception $e) {
@@ -55,7 +69,13 @@ class UnitPartController extends Controller
     {
         try {
             $unit = Unit::findOrFail($unitId);
+            $part = Part::findOrFail($partId);
             $unit->parts()->detach($partId);
+
+            $user = Auth::user();
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah menghapus part {$part->nama_part} dari unit {$unit->nama_unit}");
+            }
 
             return response()->json(['message' => 'Part removed from unit successfully.'], 200);
         } catch (\Exception $e) {

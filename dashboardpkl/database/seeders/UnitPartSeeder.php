@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Unit;
 use App\Models\Part;
+use App\Models\Unit;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,20 +15,13 @@ class UnitPartSeeder extends Seeder
     public function run(): void
     {
         $parts = Part::all();
+        $units = Unit::all();
 
-        if ($parts->count() < 2) {
-            // Create dummy parts if not enough exist
-            Part::factory()->count(2 - $parts->count())->create();
-            $parts = Part::all();
-        }
-
-        for ($i = 1; $i <= 5; $i++) {
-            $unit = Unit::create([
-                'nama_unit' => 'Unit ' . $i,
-            ]);
-
-            // Attach 2 random parts to each unit with a default stok
-            $unit->parts()->attach([$parts->random()->id_part => ['stok' => 10], $parts->random()->id_part => ['stok' => 10]]);
+        foreach ($units as $unit) {
+            $partsToAttach = $parts->random(rand(2, 5));
+            foreach ($partsToAttach as $part) {
+                $unit->parts()->attach($part->id_part, ['stok' => rand(10, 100)]);
+            }
         }
     }
 }

@@ -61,12 +61,12 @@ export default function TabelBestPrice() {
           <tbody>
             {paginatedData.map((item) => (
               <tr
-                key={item.part_id}
+                key={`${item.id_part}-${item.id_vendor}`}
                 className="border-b text-[#383E49] border-[#D0D3D9]"
               >
-                <td className="py-2 px-4 w-1/3">{item.part_name}</td>
+                <td className="py-2 px-4 w-1/3">{item.nama_part}</td>
                 <td className="py-2 px-4 whitespace-nowrap">
-                  {item.vendor_name}
+                  {item.nama_vendor}
                 </td>
                 <td className="py-2 px-4 whitespace-nowrap">
                   {new Intl.NumberFormat("id-ID", {
@@ -75,7 +75,7 @@ export default function TabelBestPrice() {
                   }).format(item.harga_part)}
                 </td>
                 <td className="py-2 px-4 whitespace-nowrap">
-                  {new Date(item.timestamp).toLocaleDateString("id-ID")}
+                  {new Date(item.updated_at || item.created_at || Date.now()).toLocaleDateString("id-ID")}
                 </td>
                 <td className="py-2 px-4 whitespace-nowrap">
                   <button
@@ -97,9 +97,8 @@ export default function TabelBestPrice() {
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
-              currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+              }`}
           >
             Previous
           </button>
@@ -115,9 +114,8 @@ export default function TabelBestPrice() {
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
             disabled={currentPage === totalPages}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
-              currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
+              }`}
           >
             Next
           </button>

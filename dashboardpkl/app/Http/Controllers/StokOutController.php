@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\StokOut;
 use App\Models\Inventori;
+use App\Http\Controllers\HistoryUsersController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
 
 class StokOutController extends Controller
 {
@@ -71,6 +74,11 @@ class StokOutController extends Controller
             'stokin_tanggal' => $validated['stokin_tanggal'],
         ]);
 
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah menambahkan stok keluar untuk produk: {$inventori->nama_produk} sebanyak {$stokOut->stokout_kuantitas}");
+        }
+
         // Update inventori stok
         $inventori->stok_out += $validated['stokout_kuantitas'];
         $this->updateInventoriStok($inventori);
@@ -109,6 +117,11 @@ class StokOutController extends Controller
 
         $stokOut->update($validated);
 
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah mengupdate stok keluar untuk produk: {$inventori->nama_produk}");
+        }
+
         // Adjust inventori stok
         $inventori->stok_out = $inventori->stok_out - $oldKuantitas + $stokOut->stokout_kuantitas;
 
@@ -130,6 +143,11 @@ class StokOutController extends Controller
     {
         $stokOut = StokOut::findOrFail($id);
         $inventori = $stokOut->inventori;
+
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah menghapus stok keluar untuk produk: {$inventori->nama_produk} sebanyak {$stokOut->stokout_kuantitas}");
+        }
 
         // Revert stok changes
         $inventori->stok_out -= $stokOut->stokout_kuantitas;

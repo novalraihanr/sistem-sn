@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HistoryUsersController;
 use App\Http\Controllers\InventoriController;
 use App\Http\Controllers\PartController;
 use App\Http\Controllers\StokInController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\TransaksiVendorController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UnitPartController;
+use App\Http\Controllers\UsersController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\VendorPartController;
 use Illuminate\Http\Request;
@@ -57,6 +59,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('stok-in/summary', [StokInController::class, 'getSummary']);
     Route::apiResource('stok-in', StokInController::class);
+
     Route::get('stok-out/summary', [StokOutController::class, 'getSummary']);
     Route::apiResource('stok-out', StokOutController::class);
+
+    Route::get('kategori-part/{kategoriPart}/parts', [\App\Http\Controllers\KategoriPartController::class, 'getParts']);
+    Route::apiResource('kategori-part', \App\Http\Controllers\KategoriPartController::class);
+
+    Route::apiResource('users', UsersController::class);
+
+    Route::apiResource('historyusers', HistoryUsersController::class);
+    Route::get('history-users/user/{id}', [HistoryUsersController::class, 'getHistoryByUser']);
 });

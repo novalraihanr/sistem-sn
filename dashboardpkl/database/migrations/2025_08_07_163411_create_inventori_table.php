@@ -25,7 +25,7 @@ return new class extends Migration
             $table->date("bulan_sekarang");
             $table->timestamps();
 
-            $table->foreign('id_kategori')->references('id_kategori')->on('kategori_inv');
+            $table->foreign('id_kategori')->references('id_kategori')->on('kategori_inv')->onDelete('cascade');
         });
     }
 

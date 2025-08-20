@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\StokIn;
 use App\Models\Inventori;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\HistoryUsersController;
 
 class StokInController extends Controller
 {
@@ -32,7 +34,6 @@ class StokInController extends Controller
             'stokin_harga_produk' => 'required|integer|min:0',
             'stokin_tanggal' => 'required|date',
             'produk_satuan' => 'required|string|max:255',
-            'produk_minimum_stok' => 'required|integer|min:0',
         ]);
 
         // Find or create the KategoriInv
@@ -50,7 +51,6 @@ class StokInController extends Controller
                 'stok_in' => 0,
                 'stok_out' => 0,
                 'produk_satuan' => $validated['produk_satuan'],
-                'produk_minimum_stok' => $validated['produk_minimum_stok'],
                 'bulan_sekarang' => now()->toDateString(),
             ]
         );
@@ -67,6 +67,11 @@ class StokInController extends Controller
             'stokin_harga_total' => $stokin_harga_total,
             'stokin_tanggal' => $validated['stokin_tanggal'],
         ]);
+
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah menambahkan stok masuk untuk produk: {$inventori->nama_produk} sebanyak {$stokIn->stokin_kuantitas}");
+        }
 
         // Update inventori stok
         $inventori->stok_in += $validated['stokin_kuantitas'];
@@ -107,6 +112,11 @@ class StokInController extends Controller
 
         $stokIn->update($validated);
 
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah mengupdate stok masuk untuk produk: {$inventori->nama_produk}");
+        }
+
         // Update inventori nama_produk if provided
         if (isset($validated['nama_produk'])) {
             $inventori->nama_produk = $validated['nama_produk'];
@@ -127,6 +137,11 @@ class StokInController extends Controller
     {
         $stokIn = StokIn::findOrFail($id);
         $inventori = $stokIn->inventori;
+
+        $user = Auth::user();
+        if ($user) {
+            HistoryUsersController::record("{$user->name} telah menghapus stok masuk untuk produk: {$inventori->nama_produk} sebanyak {$stokIn->stokin_kuantitas}");
+        }
 
         // Revert stok changes
         $inventori->stok_in -= $stokIn->stokin_kuantitas;

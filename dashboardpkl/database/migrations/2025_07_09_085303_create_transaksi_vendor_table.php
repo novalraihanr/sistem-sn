@@ -19,8 +19,8 @@ return new class extends Migration
             $table->double('total_harga');
             $table->timestamps();
 
-            $table->foreign('id_transaksi')->references('id_transaksi')->on('transaksi');
-            $table->foreign('id_vendorpart')->references('id_vendorpart')->on('vendor_part');
+            $table->foreign('id_transaksi')->references('id_transaksi')->on('transaksi')->onDelete('cascade');
+            $table->foreign('id_vendorpart')->references('id_vendorpart')->on('vendor_part')->onDelete('cascade');
         });
     }
 

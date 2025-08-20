@@ -6,13 +6,15 @@ use App\Models\Part;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\HistoryUsersController;
 
 class VendorPartController extends Controller
 {
     public function getVendorParts(int $id)
     {
         $vendor = Vendor::findOrFail($id);
-        $parts = $vendor->parts()->withPivot('harga_part', 'harga_sebelumnya_part', 'merk_part')->get();
+        $parts = $vendor->parts()->withPivot('harga_part', 'harga_sebelumnya_part', 'merk_part', 'satuan_part')->get();
 
         return response()->json($parts);
     }
@@ -20,7 +22,7 @@ class VendorPartController extends Controller
     public function getPartVendors(int $id)
     {
         $part = Part::with(['vendors' => function($query) {
-            $query->withPivot('harga_part', 'created_at');
+            $query->withPivot('harga_part', 'harga_sebelumnya_part', 'merk_part', 'satuan_part', 'created_at');
         }])->findOrFail($id);
 
         // Sort vendors by harga_part in ascending order
@@ -47,12 +49,14 @@ class VendorPartController extends Controller
             'harga_part' => 'required|numeric|min:0',
             'harga_sebelumnya_part' => 'nullable|numeric|min:0',
             'merk_part' => 'required|string|max:255',
+            'satuan_part' => 'required|string|max:255',
         ]);
 
         DB::beginTransaction();
 
         try {
-            $userId = auth()->id();
+            $user = Auth::user();
+            $userId = $user ? $user->id : null;
 
             // Find or create the vendor
             $vendor = Vendor::firstOrCreate(
@@ -75,12 +79,17 @@ class VendorPartController extends Controller
                 'harga_part' => $validated['harga_part'],
                 'harga_sebelumnya_part' => $validated['harga_sebelumnya_part'] ?? null,
                 'merk_part' => $validated['merk_part'],
+                'satuan_part' => $validated['satuan_part'],
                 'createdby' => $userId,
                 'updatedby' => $userId,
             ];
 
             // Attach the part to the vendor with the pivot data
             $vendor->parts()->syncWithoutDetaching([$part->id => $pivotData]);
+
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah menautkan part {$part->nama_part} ke vendor {$vendor->nama_vendor}");
+            }
 
             DB::commit();
 
@@ -106,6 +115,7 @@ class VendorPartController extends Controller
         $validated = $request->validate([
             'harga_part' => 'sometimes|numeric|min:0',
             'merk_part' => 'sometimes|string|max:255',
+            'satuan_part' => 'sometimes|string|max:255',
         ]);
 
         if (empty($validated)) {
@@ -114,6 +124,7 @@ class VendorPartController extends Controller
 
         try {
             $vendor = Vendor::findOrFail($vendorId);
+            $part = Part::findOrFail($partId);
 
             // Find the existing pivot record
             $pivot = $vendor->parts()->where('vendor_part.id_part', $partId)->first()->pivot;
@@ -126,6 +137,11 @@ class VendorPartController extends Controller
             $updateData['updatedby'] = auth()->id();
 
             $vendor->parts()->updateExistingPivot($partId, $updateData);
+
+            $user = Auth::user();
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah mengupdate data part {$part->nama_part} pada vendor {$vendor->nama_vendor}");
+            }
 
             $updatedPivot = $vendor->parts()->find($partId)->pivot;
 
@@ -147,18 +163,22 @@ class VendorPartController extends Controller
             'id_part' => 'required|exists:part,id_part',
             'harga_part' => 'required|numeric|min:0',
             'merk_part' => 'required|string|max:255',
+            'satuan_part' => 'required|string|max:255',
         ]);
 
         DB::beginTransaction();
 
         try {
-            $userId = auth()->id();
+            $user = Auth::user();
+            $userId = $user ? $user->id : null;
             $vendor = Vendor::findOrFail($vendorId);
+            $part = Part::findOrFail($validated['id_part']);
             $partId = $validated['id_part'];
 
             $pivotData = [
                 'harga_part' => $validated['harga_part'],
                 'merk_part' => $validated['merk_part'],
+                'satuan_part' => $validated['satuan_part'],
                 'updatedby' => $userId,
             ];
 
@@ -175,6 +195,10 @@ class VendorPartController extends Controller
 
             // Use syncWithoutDetaching to attach or update the part to the vendor with the pivot data
             $vendor->parts()->syncWithoutDetaching([$partId => $pivotData]);
+
+            if ($user) {
+                HistoryUsersController::record("{$user->name} telah menambahkan part {$part->nama_part} ke vendor {$vendor->nama_vendor}");
+            }
 
             DB::commit();
 
@@ -197,11 +221,16 @@ class VendorPartController extends Controller
         DB::beginTransaction();
         try {
             $vendor = Vendor::findOrFail($vendorId);
+            $part = Part::findOrFail($partId);
 
             // Detach the part from the vendor.
             $result = $vendor->parts()->detach($partId);
 
             if ($result) {
+                $user = Auth::user();
+                if ($user) {
+                    HistoryUsersController::record("{$user->name} telah menghapus part {$part->nama_part} dari vendor {$vendor->nama_vendor}");
+                }
                 DB::commit();
                 return response()->json(['message' => 'Part detached from vendor successfully.']);
             }

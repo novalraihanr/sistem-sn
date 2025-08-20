@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import APIEndpoint from "@/app/api/api";
 
 export default function TabelParts() {
-  const [parts, setParts] = useState([]);
+  const [kategoriParts, setKategoriParts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showTambah, setTambah] = useState(false);
   const [showEdit, setEdit] = useState(false);
@@ -14,38 +14,25 @@ export default function TabelParts() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  const handleDelete = (id) => {
-    setParts((prev) => prev.filter((part) => part.id_part !== id));
+  const handleDelete = async (id) => {
+    try {
+      await APIEndpoint.delete(`/api/kategori-part/${id}`);
+      setKategoriParts((prev) => prev.filter((kategori) => kategori.id_kategori_part !== id));
+    } catch (error) {
+      console.error("Error deleting kategori part:", error);
+    }
   };
 
   useEffect(() => {
-    const fetchParts = async () => {
+    const fetchKategoriParts = async () => {
       try {
-        const response = await APIEndpoint.get("/api/part");
-        const data = response.data;
-
-        // Ini aku grouping gini ya pal tolong perbaiki soalnya kok satu semua, aku grouping nya berdasarkan nama_part
-        const grouped = Object.values(
-          data.reduce((acc, curr) => {
-            const key = curr.nama_part.toLowerCase();
-            if (!acc[key]) {
-              acc[key] = {
-                ...curr,
-                jumlah_part: 1,
-              };
-            } else {
-              acc[key].jumlah_part += 1;
-            }
-            return acc;
-          }, {})
-        );
-
-        setParts(grouped);
+        const response = await APIEndpoint.get("/api/kategori-part");
+        setKategoriParts(response.data);
       } catch (error) {
-        console.error("Error fetching parts:", error);
+        console.error("Error fetching kategori parts:", error);
       }
     };
-    fetchParts();
+    fetchKategoriParts();
   }, []);
 
   // Tambah Kategori
@@ -56,28 +43,14 @@ export default function TabelParts() {
     }
 
     try {
-      const newPart = {
-        nama_part: namaKategori,
+      const newKategori = {
+        nama_kategori: namaKategori,
       };
 
-      const response = await APIEndpoint.post("/api/part", newPart);
+      const response = await APIEndpoint.post("/api/kategori-part", newKategori);
       const savedData = response.data;
 
-      setParts((prevParts) => {
-        const key = savedData.nama_part.toLowerCase();
-        const exists = prevParts.find((p) => p.nama_part.toLowerCase() === key);
-
-        if (exists) {
-          return prevParts.map((p) =>
-            p.nama_part.toLowerCase() === key
-              ? { ...p, jumlah_part: p.jumlah_part + 1 }
-              : p
-          );
-        } else {
-          return [...prevParts, { ...savedData, jumlah_part: 1 }];
-        }
-      });
-
+      setKategoriParts((prev) => [...prev, savedData]);
       setTambah(false);
       setNamaKategori("");
     } catch (error) {
@@ -86,9 +59,9 @@ export default function TabelParts() {
   };
 
   //Edit Kategori
-  const handleShowEdit = (part) => {
-    setEditKategoriId(part.id_part);
-    setNamaKategori(part.nama_part);
+  const handleShowEdit = (kategori) => {
+    setEditKategoriId(kategori.id_kategori_part);
+    setNamaKategori(kategori.nama_kategori);
     setEdit(true);
   };
 
@@ -99,33 +72,20 @@ export default function TabelParts() {
     }
 
     try {
-      const partLama = parts.find((p) => p.id_part === editKategoriId);
+      const updatedKategori = {
+        nama_kategori: namaKategori.trim(),
+      };
 
-      const formData = new FormData();
-      formData.append("nama_part", namaKategori.trim());
-      const hargaBersih = parseInt(
-        String(partLama?.harga_part ?? 0).replace(/\D/g, ""),
-        10
-      );
-
-      formData.append("harga_part", String(hargaBersih));
-      formData.append("merk_part", partLama.merk_part);
-
-      if (partLama.stok_part) formData.append("stok_part", partLama.stok_part);
-      if (partLama.deskripsi_part)
-        formData.append("deskripsi_part", partLama.deskripsi_part);
-
-      const response = await APIEndpoint.post(
-        `/api/part/${editKategoriId}?_method=PUT`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+      const response = await APIEndpoint.put(
+        `/api/kategori-part/${editKategoriId}`,
+        updatedKategori
       );
 
       const savedData = response.data;
 
-      setParts((prevParts) =>
-        prevParts.map((p) =>
-          p.id_part === editKategoriId ? { ...p, ...savedData } : p
+      setKategoriParts((prev) =>
+        prev.map((k) =>
+          k.id_kategori_part === editKategoriId ? { ...k, ...savedData } : k
         )
       );
 
@@ -142,22 +102,22 @@ export default function TabelParts() {
   };
 
   // Filter Search
-  const filteredParts = parts.filter((part) =>
-    part.nama_part.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredKategori = kategoriParts.filter((kategori) =>
+    kategori.nama_kategori.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredParts.length / itemsPerPage)
+    Math.ceil(filteredKategori.length / itemsPerPage)
   );
 
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(1);
     }
-  }, [filteredParts.length, totalPages, currentPage]);
+  }, [filteredKategori.length, totalPages, currentPage]);
 
-  const paginatedData = filteredParts.slice(
+  const paginatedData = filteredKategori.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -195,25 +155,25 @@ export default function TabelParts() {
             </tr>
           </thead>
           <tbody>
-            {paginatedData.map((part) => (
-              <tr key={part.id_part} className="border-t border-[#E5E7EB]">
+            {paginatedData.map((kategori) => (
+              <tr key={kategori.id_kategori_part} className="border-t border-[#E5E7EB]">
                 <td
-                  onClick={() => router.push(`/parts/detailparts/${part.id_part}`)}
+                  onClick={() => router.push(`/parts/detailparts/${kategori.id_kategori_part}`)}
                   className="py-2 px-4 text-gray-500 underline hover:text-gray-600 cursor-pointer"
                 >
-                  {part.nama_part}
+                  {kategori.nama_kategori}
                 </td>
-                <td className="py-2 px-4">{part.jumlah_part}</td>
+                <td className="py-2 px-4">{kategori.parts.length}</td>
                 <td className="py-2 px-4 flex gap-x-2">
                   <button
                     className="flex gap-x-2 border border-[#D0D3D9] px-3 py-1 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100"
-                    onClick={() => handleShowEdit(part)}
+                    onClick={() => handleShowEdit(kategori)}
                   >
                     <img src="/icons/Edit.svg" alt="Edit" className="w-4 h-4" />
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(part.id_part)}
+                    onClick={() => handleDelete(kategori.id_kategori_part)}
                     className="bg-[#C62828] hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
                   >
                     Hapus
@@ -264,7 +224,7 @@ export default function TabelParts() {
         <div className="fixed inset-0 flex items-start pt-40 justify-center bg-[rgba(107,114,128,0.4)] z-50">
           <div className="bg-white p-6 rounded-md shadow-lg w-96 relative">
             <h3 className="text-lg font-semibold mb-4 text-[#383E49]">
-              Tambah Inventory
+              Tambah Kategori
             </h3>
 
             <input

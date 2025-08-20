@@ -16,53 +16,29 @@ export default function DetailParts() {
   const [showTambahProduk, setTambahProduk] = useState(false);
   const [showEditProduk, setEditProduk] = useState(false);
 
-  // Data dummy
-  const allItems = [
-    {
-      id: 1,
-      produk: "Rigging",
-      kode: "RG001",
-      harga: 1000000,
-      merk: "Alloy",
-    },
-    {
-      id: 2,
-      produk: "Stage",
-      kode: "ST002",
-      harga: 2500000,
-      merk: "Melamin",
-    },
-    {
-      id: 3,
-      produk: "Barricade",
-      kode: "BC003",
-      harga: 750000,
-      merk: "Alloy",
-    },
-    {
-      id: 4,
-      produk: "Tent",
-      kode: "TN004",
-      harga: 1500000,
-      merk: "Sarnavil",
-    },
-    {
-      id: 5,
-      produk: "Lighting",
-      kode: "LG005",
-      harga: 900000,
-      merk: "Osram",
-    },
-  ];
-
-  // Ganti fetch API
   useEffect(() => {
-    setItems(allItems);
-  }, []);
+    if (id) {
+      const fetchParts = async () => {
+        try {
+          const response = await APIEndpoint.get(`/api/kategori-part/${id}/parts`);
+          setItems(response.data);
+          if (response.data.length > 0) {
+            // Assuming the category name can be derived from the first item's part relation
+            // This might need adjustment if the API response structure is different
+            const kategoriResponse = await APIEndpoint.get(`/api/kategori-part/${id}`);
+            setPart(kategoriResponse.data);
+          }
+        } catch (error) {
+          console.error('Error fetching parts:', error);
+        }
+      };
+      fetchParts();
+    }
+  }, [id]);
 
   // Filter Item
   const filteredItems = items.filter((item) =>
-    item.produk.toLowerCase().includes(searchTerm.toLowerCase())
+    item.nama_part.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Pagination
@@ -76,25 +52,6 @@ export default function DetailParts() {
 
     if (currentPage > total) setCurrentPage(total);
   }, [filteredItems, itemsPerPage, currentPage]);
-
-  // Fetch data part dari API
-  useEffect(() => {
-    if (!id) return;
-
-    const fetchPart = async () => {
-      try {
-        const response = await APIEndpoint.get("/api/part");
-        const foundPart = response.data.find(
-          (p) => String(p.id_part) === String(id)
-        );
-        if (foundPart) setPart(foundPart);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    fetchPart();
-  }, [id]);
 
   // Tambah Produk
   // State untuk input form Tambah Produk
@@ -154,21 +111,48 @@ export default function DetailParts() {
   };
 
   // Handler edit produk
-  const handleSaveEdit = () => {
-    setItems((prevItems) =>
-      prevItems.map((p) =>
-        p.id === selectedProduct.id ? { ...selectedProduct } : p
-      )
-    );
-    setIsEditMode(false);
+  const handleSaveEdit = async () => {
+    try {
+      await APIEndpoint.put(`/api/part/${selectedProduct.id_part}`, {
+        nama_part: selectedProduct.nama_part,
+        merk_part: selectedProduct.merk_part,
+        id_kategori_part: part.id_kategori_part,
+      });
+
+      // Update harga_part in vendor_part table
+      if (selectedProduct.id_vendor && selectedProduct.harga_part !== undefined) {
+        await APIEndpoint.put(`/api/vendor-part/changeharga/${selectedProduct.id_vendor}/${selectedProduct.id_part}`, {
+          harga_part: selectedProduct.harga_part,
+        });
+      }
+      setItems((prevItems) =>
+        prevItems.map((p) =>
+          p.id_part === selectedProduct.id_part ? { ...selectedProduct } : p
+        )
+      );
+      setIsEditMode(false);
+      alert("Produk berhasil diupdate!");
+    } catch (error) {
+      console.error("Error updating product:", error);
+      alert("Gagal mengupdate produk.");
+    }
   };
 
   // Handler hapus produk
-  const handleDeleteProduct = () => {
-    setItems((prevItems) =>
-      prevItems.filter((p) => p.id !== selectedProduct.id)
-    );
-    setShowDetailProduk(false);
+  const handleDeleteProduct = async () => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus produk ini?")) {
+      try {
+        await APIEndpoint.delete(`/api/part/${selectedProduct.id_part}`);
+        setItems((prevItems) =>
+          prevItems.filter((p) => p.id_part !== selectedProduct.id_part)
+        );
+        setShowDetailProduk(false);
+        alert("Produk berhasil dihapus!");
+      } catch (error) {
+        console.error("Error deleting product:", error);
+        alert("Gagal menghapus produk.");
+      }
+    }
   };
 
   return (
@@ -180,7 +164,7 @@ export default function DetailParts() {
             {/* Header */}
             <div className="flex justify-between items-center mb-4 p-4">
               <h2 className="text-xl font-semibold text-[#383E49]">
-                {part.nama_part}
+                {part.nama_kategori}
               </h2>
               <div className="flex gap-2">
                 <input
@@ -204,22 +188,24 @@ export default function DetailParts() {
               <table className="min-w-full table-auto text-sm text-left">
                 <thead>
                   <tr className="text-[#5D6679] font-medium">
-                    <th className="py-2 px-4">Produk</th>
-                    <th className="py-2 px-4">Kode</th>
-                    <th className="py-2 px-4">Harga</th>
+                    <th className="py-2 px-4">Nama Part</th>
+                    <th className="py-2 px-4">ID Part</th>
                     <th className="py-2 px-4">Merk</th>
+                    <th className="py-2 px-4">Vendor</th>
+                    <th className="py-2 px-4">Harga</th>
                     <th className="py-2 px-4">Detail</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {currentItems.map((item) => (
-                    <tr key={item.id} className="border-t border-[#E5E7EB]">
-                      <td className="py-2 px-4">{item.produk}</td>
-                      <td className="py-2 px-4">{item.kode}</td>
+                  {currentItems.map((item, index) => (
+                    <tr key={`${item.id_part}-${index}`} className="border-t border-[#E5E7EB]">
+                      <td className="py-2 px-4">{item.nama_part}</td>
+                      <td className="py-2 px-4">{item.id_part}</td>
+                      <td className="py-2 px-4">{item.merk_part || '-'}</td>
+                      <td className="py-2 px-4">{item.nama_vendor || '-'}</td>
                       <td className="py-2 px-4">
-                        Rp {item.harga.toLocaleString("id-ID")}
+                        {item.harga_part ? `Rp ${item.harga_part.toLocaleString('id-ID')}` : '-'}
                       </td>
-                      <td className="py-2 px-4">{item.merk}</td>
                       <td className="py-2 px-4">
                         <button
                           onClick={() => handleShowDetail(item)}
@@ -249,9 +235,8 @@ export default function DetailParts() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
-                  currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
               >
                 Previous
               </button>
@@ -263,11 +248,10 @@ export default function DetailParts() {
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
                 disabled={currentPage === totalPages}
-                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
-                  currentPage === totalPages
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
+                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+                  }`}
               >
                 Next
               </button>
@@ -381,11 +365,11 @@ export default function DetailParts() {
                       </label>
                       <input
                         type="text"
-                        value={selectedProduct.produk}
+                        value={selectedProduct.nama_part}
                         onChange={(e) =>
                           setSelectedProduct((prev) => ({
                             ...prev,
-                            produk: e.target.value,
+                            nama_part: e.target.value,
                           }))
                         }
                         disabled={!isEditMode}
@@ -396,18 +380,12 @@ export default function DetailParts() {
                     {/* Kode */}
                     <div className="flex items-center">
                       <label className="w-1/3 text-sm text-gray-700">
-                        Kode
+                        ID Part
                       </label>
                       <input
                         type="text"
-                        value={selectedProduct.kode}
-                        onChange={(e) =>
-                          setSelectedProduct((prev) => ({
-                            ...prev,
-                            kode: e.target.value,
-                          }))
-                        }
-                        disabled={!isEditMode}
+                        value={selectedProduct.id_part}
+                        disabled
                         className="border border-gray-300 rounded px-3 py-2 w-full text-sm disabled:bg-gray-100"
                       />
                     </div>
@@ -419,11 +397,11 @@ export default function DetailParts() {
                       </label>
                       <input
                         type="number"
-                        value={selectedProduct.harga}
+                        value={selectedProduct.harga_part}
                         onChange={(e) =>
                           setSelectedProduct((prev) => ({
                             ...prev,
-                            harga: parseInt(e.target.value, 10) || 0,
+                            harga_part: parseInt(e.target.value, 10) || 0,
                           }))
                         }
                         disabled={!isEditMode}
@@ -438,11 +416,11 @@ export default function DetailParts() {
                       </label>
                       <input
                         type="text"
-                        value={selectedProduct.merk}
+                        value={selectedProduct.merk_part}
                         onChange={(e) =>
                           setSelectedProduct((prev) => ({
                             ...prev,
-                            merk: e.target.value,
+                            merk_part: e.target.value,
                           }))
                         }
                         disabled={!isEditMode}

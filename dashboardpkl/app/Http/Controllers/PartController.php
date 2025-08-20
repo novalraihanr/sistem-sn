@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Part;
-use App\Models\VendorPart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\HistoryUsersController;
 
 class PartController extends Controller
 {
@@ -14,7 +15,7 @@ class PartController extends Controller
      */
     public function index()
     {
-        $part = Part::get();
+        $part = Part::with('kategoriPart')->get();
         return response()->json($part);
     }
 
@@ -25,17 +26,23 @@ class PartController extends Controller
     {
         $request->validate([
             'nama_part' => 'required|string|max:255',
+            'id_kategori_part' => 'required|exists:kategori_part,id_kategori_part',
         ]);
 
         $user = Auth::user();
 
-        // Find the part by name or create it if it doesn't exist.
         $part = Part::firstOrCreate(
-            ['nama_part' => $request->nama_part],
+            [
+                'nama_part' => $request->nama_part,
+                'id_kategori_part' => $request->id_kategori_part
+            ],
             ['createdby' => $user->name]
         );
 
-        // Determine the correct status code
+        if ($part->wasRecentlyCreated) {
+            HistoryUsersController::record("{$user->name} telah menambahkan part baru: {$part->nama_part}");
+        }
+
         $statusCode = $part->wasRecentlyCreated ? 201 : 200;
 
         return response()->json($part, $statusCode);
@@ -44,32 +51,31 @@ class PartController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Part $part)
     {
-        $part = Part::findOrFail($id);
-        return response()->json($part);
+        return response()->json($part->load('kategoriPart', 'vendors'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Part $part)
     {
         $request->validate([
             'nama_part' => 'required|string|max:255',
-            'harga_part' => 'required|integer',
-            'merk_part' => 'required|string|max:255',
+            'id_kategori_part' => 'required|exists:kategori_part,id_kategori_part',
         ]);
 
         $user = Auth::user();
-        $part = Part::findOrFail($id);
+        $oldName = $part->nama_part;
 
         $part->update([
             'nama_part' => $request->nama_part,
-            'harga_part' => $request->harga_part,
-            'merk_part' => $request->merk_part,
+            'id_kategori_part' => $request->id_kategori_part,
             'updatedby' => $user->name,
         ]);
+
+        HistoryUsersController::record("{$user->name} telah mengupdate part: {$oldName} menjadi {$part->nama_part}");
 
         return response()->json($part);
     }
@@ -77,9 +83,10 @@ class PartController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Part $part)
     {
-        $part = Part::findOrFail($id);
+        $user = Auth::user();
+        HistoryUsersController::record("{$user->name} telah menghapus part: {$part->nama_part}");
         $part->delete();
 
         return response()->json(null, 204);
@@ -87,35 +94,28 @@ class PartController extends Controller
 
     public function getBestPrices()
     {
-        $parts = Part::with(['vendors' => function($query) {
-            $query->select('vendor.id_vendor', 'vendor.nama_vendor')
-                  ->withPivot('harga_part', 'created_at');
-        }])->get();
-
-        $bestPrices = [];
-
-        foreach ($parts as $part) {
-            $bestPriceVendor = null;
-            $minPrice = PHP_FLOAT_MAX;
-
-            foreach ($part->vendors as $vendor) {
-                if ($vendor->pivot->harga_part < $minPrice) {
-                    $minPrice = $vendor->pivot->harga_part;
-                    $bestPriceVendor = $vendor;
-                }
-            }
-
-            if ($bestPriceVendor) {
-                $bestPrices[] = [
-                    'part_id' => $part->id_part,
-                    'part_name' => $part->nama_part,
-                    'vendor_id' => $bestPriceVendor->id_vendor,
-                    'vendor_name' => $bestPriceVendor->nama_vendor,
-                    'harga_part' => $minPrice,
-                    'timestamp' => $bestPriceVendor->pivot->created_at,
-                ];
-            }
-        }
+        $bestPrices = DB::table('vendor_part as vp')
+            ->select(
+                'vp.id_part',
+                'p.nama_part',
+                'v.id_vendor',
+                'v.nama_vendor',
+                'vp.harga_part',
+                'vp.created_at',
+                'vp.updated_at'
+            )
+            ->join('part as p', 'vp.id_part', '=', 'p.id_part')
+            ->join('vendor as v', 'vp.id_vendor', '=', 'v.id_vendor')
+            ->joinSub(function ($query) {
+                $query->select('id_part', DB::raw('MIN(harga_part) as min_harga'))
+                    ->from('vendor_part')
+                    ->groupBy('id_part');
+            }, 'min_prices', function ($join) {
+                $join->on('vp.id_part', '=', 'min_prices.id_part')
+                    ->on('vp.harga_part', '=', 'min_prices.min_harga');
+            })
+            ->orderBy('p.nama_part')
+            ->get();
 
         return response()->json($bestPrices);
     }

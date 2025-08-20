@@ -22,7 +22,7 @@ return new class extends Migration
             $table->date("stokin_tanggal");
             $table->timestamps();
 
-            $table->foreign('id_produk')->references('id_produk')->on('inventori');
+            $table->foreign('id_produk')->references('id_produk')->on('inventori')->onDelete('cascade');
         });
     }
 

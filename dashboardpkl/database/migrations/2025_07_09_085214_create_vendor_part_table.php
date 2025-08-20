@@ -18,12 +18,13 @@ return new class extends Migration
             $table->double('harga_part');
             $table->double('harga_sebelumnya_part')->nullable(true);
             $table->string('merk_part');
+            $table->string('satuan_part');
             $table->string('updatedby')->nullable(true);
             $table->string('createdby');
             $table->timestamps();
 
-            $table->foreign('id_part')->references('id_part')->on('part');
-            $table->foreign('id_vendor')->references('id_vendor')->on('vendor');
+            $table->foreign('id_part')->references('id_part')->on('part')->onDelete('cascade');
+            $table->foreign('id_vendor')->references('id_vendor')->on('vendor')->onDelete('cascade');
         });
     }
 

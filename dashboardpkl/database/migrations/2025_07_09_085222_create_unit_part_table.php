@@ -18,8 +18,8 @@ return new class extends Migration
             $table->integer('stok');
             $table->timestamps();
 
-            $table->foreign('id_unit')->references('id_unit')->on('unit');
-            $table->foreign('id_part')->references('id_part')->on('part');
+            $table->foreign('id_unit')->references('id_unit')->on('unit')->onDelete('cascade');
+            $table->foreign('id_part')->references('id_part')->on('part')->onDelete('cascade');
         });
     }
 

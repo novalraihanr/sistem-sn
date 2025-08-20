@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\HistoryUsersController;
 
 class VendorController extends Controller
 {
@@ -40,6 +40,10 @@ class VendorController extends Controller
             ]
         );
 
+        if ($vendor->wasRecentlyCreated) {
+            HistoryUsersController::record("{$user->name} telah menambahkan vendor baru: {$vendor->nama_vendor}");
+        }
+
         return response()->json($vendor, 201);
     }
 
@@ -65,6 +69,7 @@ class VendorController extends Controller
 
         $user = Auth::user();
         $vendor = Vendor::findOrFail($id);
+        $oldName = $vendor->nama_vendor;
 
         $vendor->update([
             'nama_vendor' => $request->nama_vendor,
@@ -72,6 +77,8 @@ class VendorController extends Controller
             'kontak_vendor' => $request->kontak_vendor,
             'updatedby' => $user->name,
         ]);
+
+        HistoryUsersController::record("{$user->name} telah mengupdate vendor: {$oldName} menjadi {$vendor->nama_vendor}");
 
         return response()->json($vendor);
     }
@@ -82,6 +89,8 @@ class VendorController extends Controller
     public function destroy(string $id)
     {
         $vendor = Vendor::findOrFail($id);
+        $user = Auth::user();
+        HistoryUsersController::record("{$user->name} telah menghapus vendor: {$vendor->nama_vendor}");
         $vendor->delete();
 
         return response()->json(null, 204);
@@ -95,4 +104,3 @@ class VendorController extends Controller
         return response()->json($vendor->parts);
     }
 }
-
