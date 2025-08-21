@@ -145,7 +145,7 @@ export default function TabelInv() {
             setShowDetail(false);
             window.location.reload();
           }}
-          refetchData={fetchData}
+          refetchData={fetchInventory}
         />
       ) : (
         <>
