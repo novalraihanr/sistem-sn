@@ -19,6 +19,9 @@ export default function AddTransaction() {
   const [produkList, setProdukList] = useState([]);
   const [partSuggestions, setPartSuggestions] = useState([]);
 
+  // Loading state
+  const [loading, setLoading] = useState(false);
+
   // --- Vendor Autocomplete ---
   const handleVendorSearch = async (name) => {
     if (name.length < 1) {
@@ -57,7 +60,9 @@ export default function AddTransaction() {
       return;
     }
     try {
-      const res = await APIEndpoint.get(`/api/vendor/${selectedVendor.id_vendor}/parts/search/${partName}`);
+      const res = await APIEndpoint.get(
+        `/api/vendor/${selectedVendor.id_vendor}/parts/search/${partName}`
+      );
       const newSuggestions = [...partSuggestions];
       newSuggestions[index] = res.data;
       setPartSuggestions(newSuggestions);
@@ -141,128 +146,144 @@ export default function AddTransaction() {
 
   // --- Save Transaction ---
   const handleSaveTransaction = async () => {
+    setLoading(true); // Mulai loading
     let vendorId;
 
-    // 1. Handle Vendor
-    if (selectedVendor) {
-      vendorId = selectedVendor.id_vendor;
-      // Optional: Check for changes in vendor details and update if necessary
-      if (vendorName !== selectedVendor.nama_vendor || vendorContact !== selectedVendor.kontak_vendor || vendorAddress !== selectedVendor.alamat_vendor) {
-        try {
+    try {
+      // 1. Handle Vendor
+      if (selectedVendor) {
+        vendorId = selectedVendor.id_vendor;
+        // Optional: Check for changes in vendor details and update if necessary
+        if (
+          vendorName !== selectedVendor.nama_vendor ||
+          vendorContact !== selectedVendor.kontak_vendor ||
+          vendorAddress !== selectedVendor.alamat_vendor
+        ) {
           await APIEndpoint.put(`/api/vendor/${vendorId}`, {
             nama_vendor: vendorName,
             kontak_vendor: vendorContact,
             alamat_vendor: vendorAddress,
           });
-        } catch (error) {
-          console.error("Gagal mengupdate vendor:", error);
-          alert("Gagal mengupdate data vendor. Silakan coba lagi.");
+        }
+      } else {
+        if (!vendorName || !vendorContact || !vendorAddress) {
+          alert("Harap lengkapi informasi vendor atau pilih dari sugesti.");
+          setLoading(false);
           return;
         }
-      }
-    } else {
-      if (!vendorName || !vendorContact || !vendorAddress) {
-        alert("Harap lengkapi informasi vendor atau pilih dari sugesti.");
-        return;
-      }
-      try {
         const vendorRes = await APIEndpoint.post("/api/vendor", {
           nama_vendor: vendorName,
           alamat_vendor: vendorAddress,
           kontak_vendor: vendorContact,
         });
         vendorId = vendorRes.data.id_vendor;
-      } catch (error) {
-        console.error("Gagal membuat vendor baru:", error);
-        alert("Gagal membuat vendor baru. Silakan coba lagi.");
+      }
+
+      if (produkList.length === 0) {
+        alert("Harap tambahkan setidaknya satu produk.");
+        setLoading(false);
         return;
       }
-    }
 
-    if (produkList.length === 0) {
-      alert("Harap tambahkan setidaknya satu produk.");
-      return;
-    }
-
-    try {
+      // 2. Handle Produk
       const transactionItems = [];
       for (const produk of produkList) {
         let partId = produk.kode_part;
         const originalData = produk.originalData;
 
-        // Determine if the part is existing (selected from suggestions) or new/manually entered
         if (originalData) {
-          // Part was selected from suggestions, handle updates
+          // Part dari suggestion, cek apakah ada perubahan
           const partUpdateData = {};
           const pivotUpdateData = {};
 
-          if (produk.part_name !== originalData.nama_part) partUpdateData.nama_part = produk.part_name;
-          if (produk.kategori_name !== originalData.kategori_part?.nama_kategori) partUpdateData.kategori_name = produk.kategori_name;
-          if (produk.merk_part !== originalData.pivot?.merk_part) pivotUpdateData.merk_part = produk.merk_part;
-          if (produk.satuan_part !== originalData.pivot?.satuan_part) pivotUpdateData.satuan_part = produk.satuan_part;
-          if (produk.harga_part !== originalData.pivot?.harga_part) pivotUpdateData.harga_part = produk.harga_part;
+          if (produk.part_name !== originalData.nama_part)
+            partUpdateData.nama_part = produk.part_name;
+          if (
+            produk.kategori_name !== originalData.kategori_part?.nama_kategori
+          )
+            partUpdateData.kategori_name = produk.kategori_name;
+          if (produk.merk_part !== originalData.pivot?.merk_part)
+            pivotUpdateData.merk_part = produk.merk_part;
+          if (produk.satuan_part !== originalData.pivot?.satuan_part)
+            pivotUpdateData.satuan_part = produk.satuan_part;
+          if (produk.harga_part !== originalData.pivot?.harga_part)
+            pivotUpdateData.harga_part = produk.harga_part;
 
-          if (Object.keys(partUpdateData).length > 0 || Object.keys(pivotUpdateData).length > 0) {
-            await APIEndpoint.put(`/api/vendor-part/changeharga/${vendorId}/${partId}`, { ...partUpdateData, ...pivotUpdateData });
+          if (
+            Object.keys(partUpdateData).length > 0 ||
+            Object.keys(pivotUpdateData).length > 0
+          ) {
+            await APIEndpoint.put(
+              `/api/vendor-part/changeharga/${vendorId}/${partId}`,
+              { ...partUpdateData, ...pivotUpdateData }
+            );
           }
         } else {
-          // Part was NOT selected from suggestions (new or manually entered existing part)
+          // Part baru/manual
           if (!produk.kode_part) {
             alert("Kode Part harus diisi untuk produk baru.");
+            setLoading(false);
             return;
           }
 
           let partExists = false;
           try {
-            // Check if the part already exists in the database
-            const checkPartRes = await APIEndpoint.get(`/api/part/${produk.kode_part}`);
-            partId = checkPartRes.data.id_part; // Part exists, use its ID
+            const checkPartRes = await APIEndpoint.get(
+              `/api/part/${produk.kode_part}`
+            );
+            partId = checkPartRes.data.id_part;
             partExists = true;
 
-            // Update existing part details if they differ from user input
+            // update jika berbeda
             const partUpdateData = {};
-            if (produk.part_name !== checkPartRes.data.nama_part) partUpdateData.nama_part = produk.part_name;
-            if (produk.kategori_name !== checkPartRes.data.kategori_part?.nama_kategori) partUpdateData.kategori_name = produk.kategori_name;
+            if (produk.part_name !== checkPartRes.data.nama_part)
+              partUpdateData.nama_part = produk.part_name;
+            if (
+              produk.kategori_name !==
+              checkPartRes.data.kategori_part?.nama_kategori
+            )
+              partUpdateData.kategori_name = produk.kategori_name;
 
             if (Object.keys(partUpdateData).length > 0) {
               await APIEndpoint.put(`/api/part/${partId}`, partUpdateData);
             }
-
           } catch (error) {
             if (error.response && error.response.status === 404) {
-              // Part does not exist, proceed to create it
               partExists = false;
             } else {
-              // Other error, re-throw
               throw error;
             }
           }
 
           if (!partExists) {
-            // Create new part
-            const kategoriRes = await APIEndpoint.post("/api/kategori-part/first-or-create", {
-              nama_kategori: produk.kategori_name,
-            });
+            const kategoriRes = await APIEndpoint.post(
+              "/api/kategori-part/first-or-create",
+              {
+                nama_kategori: produk.kategori_name,
+              }
+            );
             const idKategoriPart = kategoriRes.data.id_kategori_part;
 
             const partRes = await APIEndpoint.post("/api/part", {
               nama_part: produk.part_name,
               id_kategori_part: idKategoriPart,
-              id_part: produk.kode_part, // Use the user-entered kode_part
+              id_part: produk.kode_part,
             });
             partId = partRes.data.id_part;
           }
 
-          // Ensure the vendor-part relationship exists or is updated
+          // Vendor-part relation
           try {
-            await APIEndpoint.put(`/api/vendor-part/changeharga/${vendorId}/${partId}`, {
-              merk_part: produk.merk_part,
-              harga_part: produk.harga_part,
-              satuan_part: produk.satuan_part,
-            });
+            await APIEndpoint.put(
+              `/api/vendor-part/changeharga/${vendorId}/${partId}`,
+              {
+                merk_part: produk.merk_part,
+                harga_part: produk.harga_part,
+                satuan_part: produk.satuan_part,
+              }
+            );
           } catch (error) {
             if (error.response && error.response.status === 404) {
-              // Vendor-part relationship doesn't exist, create it
               await APIEndpoint.post(`/api/vendor-part/${vendorId}/part`, {
                 id_part: partId,
                 merk_part: produk.merk_part,
@@ -284,17 +305,18 @@ export default function AddTransaction() {
         });
       }
 
+      // 3. Simpan transaksi
       await APIEndpoint.post("/api/transaksi-vendor/multi", {
         vendor_id: vendorId,
         items: transactionItems,
         overall_total: totalHarga,
       });
-
-      alert("Transaksi berhasil ditambahkan!");
       router.push("/transaction");
     } catch (error) {
       console.error("Gagal menyimpan transaksi:", error);
       alert("Gagal menyimpan transaksi. Silakan coba lagi.");
+    } finally {
+      setLoading(false); // matikan loading setelah selesai
     }
   };
 
@@ -302,6 +324,18 @@ export default function AddTransaction() {
     <div className="bg-[#F0F1F3] min-h-screen">
       <Sidebar />
       <main className="pl-64 p-6 ml-6">
+        {loading && (
+          <div className="fixed inset-0 w-screen h-screen bg-[rgba(107,114,128,0.4)] flex items-center justify-center z-50">
+            <div className="w-64 bg-white rounded-lg shadow-md p-6 flex flex-col items-center">
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                <div className="bg-[#1366D9] h-2 rounded-full w-3/4 animate-pulse"></div>
+              </div>
+              <p className="text-sm font-medium text-[#383E49]">
+                Menambah Data Transaksi...
+              </p>
+            </div>
+          </div>
+        )}
         <section>
           <div className="bg-white rounded-lg shadow-sm w-full p-4">
             {/* Header */}
@@ -401,7 +435,9 @@ export default function AddTransaction() {
                               type="text"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.part_name}
-                              onChange={(e) => handlePartInputChange(index, e.target.value)}
+                              onChange={(e) =>
+                                handlePartInputChange(index, e.target.value)
+                              }
                               disabled={!vendorName}
                             />
                           </div>
@@ -426,7 +462,13 @@ export default function AddTransaction() {
                               type="text"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.kategori_name}
-                              onChange={(e) => handleChange(index, "kategori_name", e.target.value)}
+                              onChange={(e) =>
+                                handleChange(
+                                  index,
+                                  "kategori_name",
+                                  e.target.value
+                                )
+                              }
                             />
                           </div>
                         </td>
@@ -436,7 +478,9 @@ export default function AddTransaction() {
                               type="text"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.kode_part}
-                              onChange={(e) => handleChange(index, "kode_part", e.target.value)}
+                              onChange={(e) =>
+                                handleChange(index, "kode_part", e.target.value)
+                              }
                             />
                           </div>
                         </td>
@@ -446,7 +490,9 @@ export default function AddTransaction() {
                               type="text"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.merk_part}
-                              onChange={(e) => handleChange(index, "merk_part", e.target.value)}
+                              onChange={(e) =>
+                                handleChange(index, "merk_part", e.target.value)
+                              }
                             />
                           </div>
                         </td>
@@ -456,7 +502,13 @@ export default function AddTransaction() {
                               type="text"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.satuan_part}
-                              onChange={(e) => handleChange(index, "satuan_part", e.target.value)}
+                              onChange={(e) =>
+                                handleChange(
+                                  index,
+                                  "satuan_part",
+                                  e.target.value
+                                )
+                              }
                             />
                           </div>
                         </td>
@@ -467,7 +519,11 @@ export default function AddTransaction() {
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={String(produk.harga_part)}
                               onChange={(e) =>
-                                handleChange(index, "harga_part", e.target.value)
+                                handleChange(
+                                  index,
+                                  "harga_part",
+                                  e.target.value
+                                )
                               }
                             />
                           </div>
@@ -485,10 +541,7 @@ export default function AddTransaction() {
                           </div>
                         </td>
                         <td className="px-4 py-2">
-                          Rp{" "}
-                          {produk.total_harga.toLocaleString(
-                            "id-ID"
-                          )}
+                          Rp {produk.total_harga.toLocaleString("id-ID")}
                         </td>
                         <td className="px-4 py-2">
                           <button
@@ -530,14 +583,16 @@ export default function AddTransaction() {
               <button
                 onClick={() => router.push("/transaction")}
                 className="border border-[#D0D3D9] py-1 px-2 rounded text-[#858D9D] text-sm hover:bg-gray-100 transition-colors duration-200"
+                disabled={loading}
               >
                 Batal
               </button>
               <button
                 onClick={handleSaveTransaction}
-                className="bg-[#1366D9] py-1 px-2 rounded text-white text-sm hover:bg-[#0F56BB] transition-colors duration-200"
+                className="bg-[#1366D9] py-1 px-2 rounded text-white text-sm hover:bg-[#0F56BB] transition-colors duration-200 disabled:opacity-50"
+                disabled={loading}
               >
-                Tambah Transaksi
+                {loading ? "Menyimpan..." : "Tambah Transaksi"}
               </button>
             </div>
           </div>
