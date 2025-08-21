@@ -194,7 +194,7 @@ class TransaksiVendorController extends Controller
         }
     }
 
-    public function show(int $id)
+    public function show($id)
     {
         try {
             $transaksi = Transaksi::with([
@@ -206,5 +206,15 @@ class TransaksiVendorController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => 'An error occurred while fetching transaction details.', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    public function getRecentTransactions()
+    {
+        $recentTransactions = TransaksiVendor::with(['vendorPart.vendor', 'vendorPart.part'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return response()->json($recentTransactions);
     }
 }

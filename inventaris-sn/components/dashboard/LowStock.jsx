@@ -1,24 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import APIEndpoint from "@/app/api/api";
 
 export default function LowStock() {
-  const data = [
-    { name: "BINDER CLIPS UK.200", minStock: 7, finalStock: 3 },
-    { name: "KERTAS HVS F4", minStock: 7, finalStock: -9 },
-    { name: "STABILO KUNING", minStock: 7, finalStock: 1 },
-    { name: "BINDER CLIPS UK.111", minStock: 7, finalStock: 11 },
-    { name: "BOLPOINT BIRU", minStock: 7, finalStock: 13 },
-  ];
+  const [lowStockData, setLowStockData] = useState([]);
 
-  const getStatus = (stock, min) => {
-    if (stock < min) return "Need Order";
-    return "By Order";
-  };
+  useEffect(() => {
+    const fetchLowStockData = async () => {
+      try {
+        const response = await APIEndpoint.get("/api/inventori/low-stock-alerts");
+        setLowStockData(response.data);
+      } catch (error) {
+        console.error("Error fetching low stock data:", error);
+      }
+    };
+
+    fetchLowStockData();
+  }, []);
 
   const getStatusColor = (status) => {
-    if (status === "Need Order") return "text-[#EF4444]";
-    return "text-[#F59E0B]"; 
+    if (status === "Need Order") return "text-[#EF4444]"; // red
+    if (status === "By Order") return "text-[#F59E0B]"; // yellow
+    if (status === "Cukup") return "text-green-500"; // green
+    return "text-gray-500"; // fallback
   };
 
   return (
@@ -48,19 +54,23 @@ export default function LowStock() {
             </tr>
           </thead>
           <tbody>
-            {data.map((item, index) => {
-              const status = getStatus(item.finalStock, item.minStock);
-              return (
-                <tr key={index} className="border-t border-[#E5E7EB]">
-                  <td className="py-3 px-4 text-[#383E49]">{item.name}</td>
-                  <td className="py-3 px-4 text-[#383E49]">{item.minStock}</td>
-                  <td className="py-3 px-4 text-[#383E49]">{item.finalStock}</td>
-                  <td className={`py-2 px-4 font-bold ${getStatusColor(status)}`}>
-                    {status}
-                  </td>
-                </tr>
-              );
-            })}
+            {lowStockData.map((item, index) => (
+              <tr key={index} className="border-t border-[#E5E7EB]">
+                <td className="py-3 px-4 text-[#383E49]">{item.nama_produk}</td>
+                <td className="py-3 px-4 text-[#383E49]">{item.produk_minimum_stok}</td>
+                <td className="py-3 px-4 text-[#383E49]">{item.stok_akhir}</td>
+                <td className={`py-2 px-4 font-bold ${getStatusColor(item.produk_status)}`}>
+                  {item.produk_status}
+                </td>
+              </tr>
+            ))}
+            {lowStockData.length === 0 && (
+              <tr>
+                <td colSpan="4" className="text-center py-4 text-gray-500">
+                  No low stock items.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

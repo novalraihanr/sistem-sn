@@ -44,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('transaksi-vendor', TransaksiVendorController::class);
     Route::post('transaksi-vendor/multi', [TransaksiVendorController::class, 'storeMulti']);
     Route::get('transaksi-vendor/{id}', [TransaksiVendorController::class, 'show']);
+    Route::get('transaksi-vendor/recent/vendor', [TransaksiVendorController::class, 'getRecentTransactions']);
 
     Route::get('vendor/{id}/parts', [VendorController::class, 'getVendorParts']);
     Route::post('vendor/{id}/parts', [VendorPartController::class, 'addPartToVendor']);
@@ -59,6 +60,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('inventori/find-by-name', [InventoriController::class, 'searchByName']);
     Route::get('inventori/monthly-stock-data', [InventoriController::class, 'getMonthlyStockData']);
     Route::get('inventori/product-names', [InventoriController::class, 'getAllProductNames']);
+    Route::get('inventori/low-stock-alerts', [InventoriController::class, 'getLowStockAlerts']);
+    Route::get('inventori/summary', [InventoriController::class, 'getInventorySummary']);
     Route::apiResource('inventori', InventoriController::class);
 
     Route::get('stok-in/summary', [StokInController::class, 'getSummary']);

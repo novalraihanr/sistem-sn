@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Inventori;
+use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\HistoryUsersController;
@@ -156,11 +157,13 @@ class InventoriController extends Controller
     {
         $inventoriCount = Inventori::count();
         $kategoriCount = \App\Models\KategoriInv::count();
+        $supplierCount = Vendor::count();
         $latestUpdate = Inventori::max('updated_at');
 
         return response()->json([
             'total_produk' => $inventoriCount,
             'total_kategori' => $kategoriCount,
+            'total_supplier' => $supplierCount,
             'latest_update' => $latestUpdate ? $latestUpdate : null,
         ]);
     }
@@ -225,5 +228,35 @@ class InventoriController extends Controller
     {
         $productNames = Inventori::distinct()->pluck('nama_produk');
         return response()->json($productNames);
+    }
+
+    public function getLowStockAlerts()
+    {
+        $lowStockInventori = Inventori::whereIn('produk_status', ['Need Order', 'By Order', 'Cukup'])
+            ->orderByRaw("
+                CASE
+                    WHEN produk_status = 'Need Order' THEN 1
+                    WHEN produk_status = 'By Order' THEN 2
+                    WHEN produk_status = 'Cukup' THEN 3
+                    ELSE 4
+                END
+            ")
+            ->limit(5)
+            ->get();
+
+        return response()->json($lowStockInventori);
+    }
+
+    public function getInventorySummary()
+    {
+        $totalStokAkhir = Inventori::sum('stok_akhir');
+        $totalStokIn = Inventori::sum('stok_in');
+        $totalStokOut = Inventori::sum('stok_out');
+
+        return response()->json([
+            'total_stok_akhir' => $totalStokAkhir,
+            'total_stok_in' => $totalStokIn,
+            'total_stok_out' => $totalStokOut,
+        ]);
     }
 }
