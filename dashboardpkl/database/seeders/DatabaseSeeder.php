@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Unit;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -22,8 +21,6 @@ class DatabaseSeeder extends Seeder
 
 
         $this->call([
-            PartSeeder::class,
-            VendorPartSeeder::class,
             CsvDataSeeder::class,
         ]);
     }
