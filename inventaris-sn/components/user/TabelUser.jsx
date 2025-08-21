@@ -18,29 +18,27 @@ export default function TabelUser() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [formErrors, setFormErrors] = useState({});
 
   const dataPerHalaman = 20;
 
   const fetchData = async () => {
     try {
-      setLoading(true); // mulai loading
+      setLoading(true);
       const response = await APIEndpoint.get("/api/users");
       setData(response.data);
     } catch (err) {
       if (err.response) {
         setError(
-          `Error: ${err.response.status} ${err.response.statusText
-          } - ${JSON.stringify(err.response.data)}`
+          `Error: ${err.response.status} ${err.response.statusText} - ${JSON.stringify(err.response.data)}`
         );
       } else if (err.request) {
-        setError(
-          "Error: No response from server. Is the backend running on port 8000?"
-        );
+        setError("Error: No response from server. Is the backend running?");
       } else {
         setError(`Error: ${err.message}`);
       }
     } finally {
-      setLoading(false); // selesai loading
+      setLoading(false);
     }
   };
 
@@ -56,10 +54,7 @@ export default function TabelUser() {
     u.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalHalaman = Math.max(
-    1,
-    Math.ceil(filteredData.length / dataPerHalaman)
-  );
+  const totalHalaman = Math.max(1, Math.ceil(filteredData.length / dataPerHalaman));
 
   useEffect(() => {
     if (page > totalHalaman) {
@@ -68,29 +63,57 @@ export default function TabelUser() {
   }, [totalHalaman, page]);
 
   const startIndex = (page - 1) * dataPerHalaman;
-  const currentData = filteredData.slice(
-    startIndex,
-    startIndex + dataPerHalaman
-  );
+  const currentData = filteredData.slice(startIndex, startIndex + dataPerHalaman);
+
+  // validasi form
+  const validateForm = () => {
+    const errors = {};
+    if (!username.trim()) errors.username = "Username wajib diisi";
+    if (!email.trim()) errors.email = "Email wajib diisi";
+    if (!password.trim()) {
+      errors.password = "Password wajib diisi";
+    } else {
+      // cek panjang dan pola password
+      const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+      if (!passwordRegex.test(password)) {
+        errors.password = "Minimal 8 karakter, kombinasi huruf, angka, dan simbol";
+      }
+    }
+    if (!passwordConfirmation.trim()) {
+      errors.passwordConfirmation = "Konfirmasi password wajib diisi";
+    } else if (password !== passwordConfirmation) {
+      errors.passwordConfirmation = "Password dan konfirmasi tidak sama";
+    }
+    return errors;
+  };
 
   const handleTambahUser = async () => {
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
     try {
       await APIEndpoint.post("/api/register", {
         name: username,
-        email: email,
-        password: password,
+        email,
+        password,
         password_confirmation: passwordConfirmation,
       });
-      // refresh data
       await fetchData();
-      // reset form
       setUsername("");
       setEmail("");
       setPassword("");
-      setPasswordConfirmation(""); // Reset password confirmation
+      setPasswordConfirmation("");
+      setFormErrors({});
       setShowPopup(false);
     } catch (err) {
-      alert("Gagal menambahkan user!");
+      if (err.response?.data) {
+        alert(`Gagal menambahkan user: ${JSON.stringify(err.response.data)}`);
+      } else {
+        alert("Gagal menambahkan user. Coba lagi.");
+      }
     }
   };
 
@@ -99,7 +122,8 @@ export default function TabelUser() {
     setUsername("");
     setEmail("");
     setPassword("");
-    setPasswordConfirmation(""); // Reset password confirmation
+    setPasswordConfirmation("");
+    setFormErrors({});
   };
 
   if (error) {
@@ -158,8 +182,7 @@ export default function TabelUser() {
                 <td className="px-4 py-2">
                   <button
                     onClick={() => router.push(`/user/detailuser/${u.id}`)}
-                    className="bg-[#1366D9] text-white text-sm px-3 py-1 rounded-sm hover:bg-[#1570EF]"
-                  >
+                    className="bg-[#1366D9] text-white text-sm px-3 py-1 rounded-sm hover:bg-[#1570EF]">
                     Detail User
                   </button>
                 </td>
@@ -192,7 +215,7 @@ export default function TabelUser() {
 
       {/* Popup Tambah User */}
       {showPopup && (
-        <div className="fixed inset-0 flex items-start pt-40 justify-center bg-[rgba(107,114,128,0.4)] z-50">
+        <div className="fixed inset-0 flex items-start pt-30 justify-center bg-[rgba(107,114,128,0.4)] z-50">
           <div className="bg-white p-6 rounded-md shadow-lg w-96 relative">
             <h3 className="text-lg font-semibold mb-4">Tambah Akses User</h3>
             <div className="mb-3">
@@ -204,6 +227,7 @@ export default function TabelUser() {
                 placeholder="Masukkan Username"
                 className="w-full border border-gray-300 px-3 py-2 rounded-sm text-sm"
               />
+              {formErrors.username && <p className="text-red-500 text-xs">{formErrors.username}</p>}
             </div>
             <div className="mb-3">
               <label className="block text-sm mb-1">Email</label>
@@ -214,16 +238,18 @@ export default function TabelUser() {
                 placeholder="Masukkan Email"
                 className="w-full border border-gray-300 px-3 py-2 rounded-sm text-sm"
               />
+              {formErrors.email && <p className="text-red-500 text-xs">{formErrors.email}</p>}
             </div>
-            <div className="mb-4">
+            <div className="mb-3">
               <label className="block text-sm mb-1">Password</label>
               <input
                 type="text"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan Password"
+                placeholder="Minimal 8 karakter, huruf, angka, simbol"
                 className="w-full border border-gray-300 px-3 py-2 rounded-sm text-sm"
               />
+              {formErrors.password && <p className="text-red-500 text-xs">{formErrors.password}</p>}
             </div>
             <div className="mb-4">
               <label className="block text-sm mb-1">Konfirmasi Password</label>
@@ -234,6 +260,9 @@ export default function TabelUser() {
                 placeholder="Konfirmasi Password"
                 className="w-full border border-gray-300 px-3 py-2 rounded-sm text-sm"
               />
+              {formErrors.passwordConfirmation && (
+                <p className="text-red-500 text-xs">{formErrors.passwordConfirmation}</p>
+              )}
             </div>
             <div className="flex justify-end gap-2">
               <button

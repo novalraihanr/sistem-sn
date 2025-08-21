@@ -18,11 +18,11 @@ export default function User() {
           setUserRole(response.data.role);
         } else {
           // If no user data or role, assume not logged in or invalid
-          router.push('/'); // Redirect to login if no user
+          router.push("/"); // Redirect to login if no user
         }
       } catch (error) {
         console.error("Failed to fetch user data:", error);
-        router.push('/'); // Redirect to login on error
+        router.push("/"); // Redirect to login on error
       } finally {
         setLoading(false);
       }
@@ -35,9 +35,9 @@ export default function User() {
     return <div className="text-center p-4">Loading user data...</div>;
   }
 
-  if (userRole !== 'admin') {
+  if (userRole !== "admin") {
     // Redirect to dashboard or show unauthorized message
-    router.push('/dashboard'); // Redirect to dashboard if not admin
+    router.push("/dashboard"); // Redirect to dashboard if not admin
     return null; // Or return an unauthorized component
   }
 

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import DetailInventory from "./DetailInventory";
@@ -25,6 +25,7 @@ export default function TabelInv() {
   const [formErrors, setFormErrors] = useState({});
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [newItem, setNewItem] = useState({
     nama_produk: "",
     nama_kategori: "",
@@ -35,11 +36,14 @@ export default function TabelInv() {
 
   // Fetch Data from API
   const fetchInventory = async () => {
+    setLoading(true); // mulai loading
     try {
       const res = await APIEndpoint.get("/api/inventori");
       setInventoryData(res.data);
     } catch (error) {
       console.error("Error fetching inventory data:", error);
+    } finally {
+      setLoading(false); // selesai loading
     }
   };
 
@@ -124,7 +128,8 @@ export default function TabelInv() {
         produk_satuan: "",
         produk_minimum_stok: 0,
       });
-      fetchInventory(); // Re-fetch data after adding new item
+      fetchInventory();
+      window.location.reload();
     } catch (error) {
       console.error("Error adding product:", error);
       alert("Gagal menambahkan produk. Silakan coba lagi.");
@@ -136,7 +141,11 @@ export default function TabelInv() {
       {showDetail && selectedProduct ? (
         <DetailInventory
           product={selectedProduct}
-          onClose={() => setShowDetail(false)}
+          onClose={() => {
+            setShowDetail(false);
+            window.location.reload();
+          }}
+          refetchData={fetchData}
         />
       ) : (
         <>
@@ -232,35 +241,48 @@ export default function TabelInv() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.map((item, index) => (
-                  <tr
-                    key={index}
-                    className="border-b text-[#383E49] border-[#D0D3D9]"
-                  >
-                    <td
-                      className="py-2 px-4 text-gray-500 underline hover:text-gray-600 cursor-pointer"
-                      onClick={() => {
-                        setSelectedProduct(item);
-                        setShowDetail(true);
-                      }}
-                    >
-                      {item.nama_produk}
-                    </td>
-
-                    <td className="py-2 px-4">
-                      {item.kategori_inv.nama_kategori}
-                    </td>
-                    <td className="py-2 px-4">{item.stok_awal}</td>
-                    <td className="py-2 px-4">{item.stok_in}</td>
-                    <td className="py-2 px-4">{item.stok_out}</td>
-                    <td className="py-2 px-4">{item.stok_akhir}</td>
-                    <td className="py-2 px-4">{item.produk_satuan}</td>
-                    <td className="py-2 px-4">{item.produk_minimum_stok}</td>
-                    <td className="py-2 px-4">
-                      {getStatus(item.produk_status)}
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-4 text-gray-500">
+                      Loading...
                     </td>
                   </tr>
-                ))}
+                ) : paginatedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-4 text-gray-500">
+                      Tidak ada data ditemukan
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((item, index) => (
+                    <tr
+                      key={index}
+                      className="border-b text-[#383E49] border-[#D0D3D9]"
+                    >
+                      <td
+                        className="py-2 px-4 text-gray-500 underline hover:text-gray-600 cursor-pointer"
+                        onClick={() => {
+                          setSelectedProduct(item);
+                          setShowDetail(true);
+                        }}
+                      >
+                        {item.nama_produk}
+                      </td>
+                      <td className="py-2 px-4">
+                        {item.kategori_inv.nama_kategori}
+                      </td>
+                      <td className="py-2 px-4">{item.stok_awal}</td>
+                      <td className="py-2 px-4">{item.stok_in}</td>
+                      <td className="py-2 px-4">{item.stok_out}</td>
+                      <td className="py-2 px-4">{item.stok_akhir}</td>
+                      <td className="py-2 px-4">{item.produk_satuan}</td>
+                      <td className="py-2 px-4">{item.produk_minimum_stok}</td>
+                      <td className="py-2 px-4">
+                        {getStatus(item.produk_status)}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
 
@@ -269,8 +291,9 @@ export default function TabelInv() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 && "opacity-50 cursor-not-allowed"
-                  }`}
+                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+                  currentPage === 1 && "opacity-50 cursor-not-allowed"
+                }`}
               >
                 Previous
               </button>
@@ -282,8 +305,9 @@ export default function TabelInv() {
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
                 disabled={currentPage === totalPages}
-                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages && "opacity-50 cursor-not-allowed"
-                  }`}
+                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+                  currentPage === totalPages && "opacity-50 cursor-not-allowed"
+                }`}
               >
                 Next
               </button>
@@ -305,36 +329,37 @@ export default function TabelInv() {
                   }}
                   className="space-y-4"
                 >
-                  {[{
-                    label: "Nama Produk",
-                    name: "nama_produk",
-                    placeholder: "Masukan nama produk",
-                    type: "text",
-                  },
-                  {
-                    label: "Nama Kategori",
-                    name: "nama_kategori",
-                    placeholder: "Masukan nama kategori",
-                    type: "text",
-                  },
-                  {
-                    label: "Stok Awal",
-                    name: "stok_awal",
-                    placeholder: "Masukan stok awal",
-                    type: "number",
-                  },
-                  {
-                    label: "Satuan Produk",
-                    name: "produk_satuan",
-                    placeholder: "Masukan satuan produk",
-                    type: "text",
-                  },
-                  {
-                    label: "Minimum Stok",
-                    name: "produk_minimum_stok",
-                    placeholder: "Masukan minimum stok",
-                    type: "number",
-                  },
+                  {[
+                    {
+                      label: "Nama Produk",
+                      name: "nama_produk",
+                      placeholder: "Masukan nama produk",
+                      type: "text",
+                    },
+                    {
+                      label: "Nama Kategori",
+                      name: "nama_kategori",
+                      placeholder: "Masukan nama kategori",
+                      type: "text",
+                    },
+                    {
+                      label: "Stok Awal",
+                      name: "stok_awal",
+                      placeholder: "Masukan stok awal",
+                      type: "number",
+                    },
+                    {
+                      label: "Satuan Produk",
+                      name: "produk_satuan",
+                      placeholder: "Masukan satuan produk",
+                      type: "text",
+                    },
+                    {
+                      label: "Minimum Stok",
+                      name: "produk_minimum_stok",
+                      placeholder: "Masukan minimum stok",
+                      type: "number",
+                    },
                   ].map((field) => (
                     <div key={field.name} className="flex flex-col gap-1">
                       <label className="text-sm text-gray-700">
@@ -347,10 +372,11 @@ export default function TabelInv() {
                         value={newItem[field.name] || ""}
                         onChange={handleInputChange}
                         required
-                        className={`border px-3 py-2 rounded-md text-sm focus:outline-none focus:ring ${formErrors[field.name]
+                        className={`border px-3 py-2 rounded-md text-sm focus:outline-none focus:ring ${
+                          formErrors[field.name]
                             ? "border-red-500"
                             : "border-gray-300 focus:border-blue-300"
-                          }`}
+                        }`}
                       />
                       {formErrors[field.name] && (
                         <span className="text-red-500 text-xs">
@@ -381,6 +407,6 @@ export default function TabelInv() {
           )}
         </>
       )}
-    </div >
+    </div>
   );
 }

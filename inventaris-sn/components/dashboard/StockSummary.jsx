@@ -10,20 +10,20 @@ export default function StockSummary() {
   const dropdownRef = useRef(null);
 
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState("ATK");
+  const [selectedFilter, setSelectedFilter] = useState("Semua");
 
   const [stockData, setStockData] = useState({
     in: Array(12).fill(0),
     out: Array(12).fill(0),
   });
-  const [availableParts, setAvailableParts] = useState(["ATK"]);
+  const [availableParts, setAvailableParts] = useState(["Semua"]);
 
   useEffect(() => {
     const fetchChartData = async () => {
       try {
         const res = await APIEndpoint.get("/api/inventori/monthly-stock-data", {
           params: {
-            nama_produk: selectedFilter === "ATK" ? null : selectedFilter,
+            nama_produk: selectedFilter === "Semua" ? null : selectedFilter,
           },
         });
 
@@ -47,7 +47,7 @@ export default function StockSummary() {
     const fetchProductNames = async () => {
       try {
         const res = await APIEndpoint.get("/api/inventori/product-names");
-        setAvailableParts(["ATK", ...res.data]);
+        setAvailableParts(["Semua", ...res.data]);
       } catch (error) {
         console.error("Error fetching product names:", error);
       }
@@ -94,8 +94,18 @@ export default function StockSummary() {
       type: "bar",
       data: {
         labels: [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
         ],
         datasets: [
           {
@@ -188,7 +198,10 @@ export default function StockSummary() {
 
       {/* Grafik */}
       <div className="w-full flex flex-col justify-center items-center">
-        <div className="w-full relative flex justify-center" style={{ height: "210px" }}>
+        <div
+          className="w-full relative flex justify-center"
+          style={{ height: "210px" }}
+        >
           <canvas ref={chartRef} className="w-full h-full" />
         </div>
 
@@ -198,7 +211,8 @@ export default function StockSummary() {
             <div
               className="w-4 h-4 rounded-full"
               style={{
-                background: "linear-gradient(180deg, #79D0F1 0%, #74B0FA 48%, #817AF3 100%)",
+                background:
+                  "linear-gradient(180deg, #79D0F1 0%, #74B0FA 48%, #817AF3 100%)",
               }}
             ></div>
             <p className="text-[#5D6679] text-sm font-medium">Stock In</p>
@@ -207,7 +221,8 @@ export default function StockSummary() {
             <div
               className="w-4 h-4 rounded-full"
               style={{
-                background: "linear-gradient(180deg, #57DA65 0%, #51CC5D 48%, #46A46C 100%)",
+                background:
+                  "linear-gradient(180deg, #57DA65 0%, #51CC5D 48%, #46A46C 100%)",
               }}
             ></div>
             <p className="text-[#5D6679] text-sm font-medium">Stock Out</p>
