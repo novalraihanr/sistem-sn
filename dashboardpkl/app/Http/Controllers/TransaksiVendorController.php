@@ -177,7 +177,7 @@ class TransaksiVendorController extends Controller
                     'total_harga' => $item['total_harga'],
                 ]);
             }
-            
+
             if ($user) {
                 HistoryUsersController::record("{$user->name} telah membuat transaksi multi-part baru dengan total: {$transaksi->total}");
             }

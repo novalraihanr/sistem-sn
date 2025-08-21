@@ -27,7 +27,7 @@ class PartController extends Controller
         $request->validate([
             'nama_part' => 'required|string|max:255',
             'id_kategori_part' => 'required|exists:kategori_part,id_kategori_part',
-            'id_part' => 'nullable|string|max:255',
+            'id_part' => 'required|string|max:255|unique:part,id_part',
         ]);
 
         $user = Auth::user();

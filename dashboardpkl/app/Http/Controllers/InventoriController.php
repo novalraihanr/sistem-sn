@@ -6,6 +6,7 @@ use App\Models\Inventori;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\HistoryUsersController;
 
 class InventoriController extends Controller
@@ -93,7 +94,7 @@ class InventoriController extends Controller
         }
 
         $inventori->update($validated);
-        
+
         $user = Auth::user();
         if ($user) {
             HistoryUsersController::record("{$user->name} telah mengupdate inventori: {$oldName}");
@@ -142,9 +143,8 @@ class InventoriController extends Controller
             $inventori->produk_status = 'Cukup';
         } else {
             // Stok is at or below minimum
-            $threshold20Percent = $inventori->produk_minimum_stok * 0.2;
-
-            if ($inventori->stok_akhir <= $threshold20Percent) {
+            // Check for "2 away" condition
+            if ($inventori->stok_akhir <= $inventori->produk_minimum_stok + 2) {
                 $inventori->produk_status = 'Need Order';
             } else {
                 $inventori->produk_status = 'By Order';
@@ -193,31 +193,41 @@ class InventoriController extends Controller
             $query->where('nama_produk', $request->nama_produk);
         }
 
-        $stockData = $query->selectRaw(
-            'MONTH(stok_in.stokin_tanggal) as month,
-            SUM(stok_in.stokin_kuantitas) as total_stok_in,
-            SUM(stok_out.stokout_kuantitas) as total_stok_out'
-        )
-        ->join('stok_in', 'inventori.id_produk', '=', 'stok_in.id_produk')
-        ->join('stok_out', 'inventori.id_produk', '=', 'stok_out.id_produk')
-        ->groupBy('month')
-        ->orderBy('month')
-        ->get();
+        $inventoriId = $query->value('id_produk'); // Get the id_produk for the selected product
+
+        if (!$inventoriId) {
+            // If no product found, return empty monthly data
+            $monthlyData = [];
+            for ($i = 1; $i <= 12; $i++) {
+                $monthlyData[$i] = [
+                    'month' => $i,
+                    'total_stok_in' => 0,
+                    'total_stok_out' => 0,
+                ];
+            }
+            return response()->json(array_values($monthlyData));
+        }
+
+        $stokIn = DB::table('stok_in')
+            ->selectRaw('MONTH(stokin_tanggal) as month, SUM(stokin_kuantitas) as total_stok_in')
+            ->where('id_produk', $inventoriId)
+            ->groupBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $stokOut = DB::table('stok_out')
+            ->selectRaw('MONTH(stokin_tanggal) as month, SUM(stokout_kuantitas) as total_stok_out')
+            ->where('id_produk', $inventoriId)
+            ->groupBy('month')
+            ->get()
+            ->keyBy('month');
 
         $monthlyData = [];
         for ($i = 1; $i <= 12; $i++) {
             $monthlyData[$i] = [
                 'month' => $i,
-                'total_stok_in' => 0,
-                'total_stok_out' => 0,
-            ];
-        }
-
-        foreach ($stockData as $data) {
-            $monthlyData[$data->month] = [
-                'month' => $data->month,
-                'total_stok_in' => (int) $data->total_stok_in,
-                'total_stok_out' => (int) $data->total_stok_out,
+                'total_stok_in' => (int) ($stokIn[$i]->total_stok_in ?? 0),
+                'total_stok_out' => (int) ($stokOut[$i]->total_stok_out ?? 0),
             ];
         }
 

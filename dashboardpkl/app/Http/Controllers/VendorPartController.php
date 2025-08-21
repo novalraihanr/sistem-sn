@@ -162,7 +162,15 @@ class VendorPartController extends Controller
             $part->save();
 
             // Find the existing pivot record
-            $pivot = $vendor->parts()->where('vendor_part.id_part', $partId)->first()->pivot;
+            $existingPivot = $vendor->parts()->where('vendor_part.id_part', $partId)->first();
+
+            if (!$existingPivot) {
+                // If pivot record doesn't exist, return a 404.
+                // The frontend will then attempt to create it.
+                return response()->json(['message' => 'Vendor-part relationship not found.'], 404);
+            }
+
+            $pivot = $existingPivot->pivot; // Now it's safe to access pivot
 
             $updateData = $validated;
 

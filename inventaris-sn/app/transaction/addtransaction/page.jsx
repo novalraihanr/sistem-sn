@@ -190,41 +190,89 @@ export default function AddTransaction() {
         let partId = produk.kode_part;
         const originalData = produk.originalData;
 
-        // Handle existing parts that might have been modified
-        if (partId && originalData) {
+        // Determine if the part is existing (selected from suggestions) or new/manually entered
+        if (originalData) {
+          // Part was selected from suggestions, handle updates
           const partUpdateData = {};
           const pivotUpdateData = {};
 
           if (produk.part_name !== originalData.nama_part) partUpdateData.nama_part = produk.part_name;
           if (produk.kategori_name !== originalData.kategori_part?.nama_kategori) partUpdateData.kategori_name = produk.kategori_name;
-          if (produk.merk_part !== originalData.pivot.merk_part) pivotUpdateData.merk_part = produk.merk_part;
-          if (produk.satuan_part !== originalData.pivot.satuan_part) pivotUpdateData.satuan_part = produk.satuan_part;
-          if (produk.harga_part !== originalData.pivot.harga_part) pivotUpdateData.harga_part = produk.harga_part;
+          if (produk.merk_part !== originalData.pivot?.merk_part) pivotUpdateData.merk_part = produk.merk_part;
+          if (produk.satuan_part !== originalData.pivot?.satuan_part) pivotUpdateData.satuan_part = produk.satuan_part;
+          if (produk.harga_part !== originalData.pivot?.harga_part) pivotUpdateData.harga_part = produk.harga_part;
 
           if (Object.keys(partUpdateData).length > 0 || Object.keys(pivotUpdateData).length > 0) {
             await APIEndpoint.put(`/api/vendor-part/changeharga/${vendorId}/${partId}`, { ...partUpdateData, ...pivotUpdateData });
           }
-        }
-        // Handle new parts
-        else if (!partId) {
-          const kategoriRes = await APIEndpoint.post("/api/kategori-part/first-or-create", {
-            nama_kategori: produk.kategori_name,
-          });
-          const idKategoriPart = kategoriRes.data.id_kategori_part;
+        } else {
+          // Part was NOT selected from suggestions (new or manually entered existing part)
+          if (!produk.kode_part) {
+            alert("Kode Part harus diisi untuk produk baru.");
+            return;
+          }
 
-          const partRes = await APIEndpoint.post("/api/part", {
-            nama_part: produk.part_name,
-            id_kategori_part: idKategoriPart,
-            id_part: produk.kode_part, // can be empty
-          });
-          partId = partRes.data.id_part;
+          let partExists = false;
+          try {
+            // Check if the part already exists in the database
+            const checkPartRes = await APIEndpoint.get(`/api/part/${produk.kode_part}`);
+            partId = checkPartRes.data.id_part; // Part exists, use its ID
+            partExists = true;
 
-          await APIEndpoint.post(`/api/vendor-part/${vendorId}/part`, {
-            id_part: partId,
-            merk_part: produk.merk_part,
-            harga_part: produk.harga_part,
-            satuan_part: produk.satuan_part,
-          });
+            // Update existing part details if they differ from user input
+            const partUpdateData = {};
+            if (produk.part_name !== checkPartRes.data.nama_part) partUpdateData.nama_part = produk.part_name;
+            if (produk.kategori_name !== checkPartRes.data.kategori_part?.nama_kategori) partUpdateData.kategori_name = produk.kategori_name;
+
+            if (Object.keys(partUpdateData).length > 0) {
+              await APIEndpoint.put(`/api/part/${partId}`, partUpdateData);
+            }
+
+          } catch (error) {
+            if (error.response && error.response.status === 404) {
+              // Part does not exist, proceed to create it
+              partExists = false;
+            } else {
+              // Other error, re-throw
+              throw error;
+            }
+          }
+
+          if (!partExists) {
+            // Create new part
+            const kategoriRes = await APIEndpoint.post("/api/kategori-part/first-or-create", {
+              nama_kategori: produk.kategori_name,
+            });
+            const idKategoriPart = kategoriRes.data.id_kategori_part;
+
+            const partRes = await APIEndpoint.post("/api/part", {
+              nama_part: produk.part_name,
+              id_kategori_part: idKategoriPart,
+              id_part: produk.kode_part, // Use the user-entered kode_part
+            });
+            partId = partRes.data.id_part;
+          }
+
+          // Ensure the vendor-part relationship exists or is updated
+          try {
+            await APIEndpoint.put(`/api/vendor-part/changeharga/${vendorId}/${partId}`, {
+              merk_part: produk.merk_part,
+              harga_part: produk.harga_part,
+              satuan_part: produk.satuan_part,
+            });
+          } catch (error) {
+            if (error.response && error.response.status === 404) {
+              // Vendor-part relationship doesn't exist, create it
+              await APIEndpoint.post(`/api/vendor-part/${vendorId}/part`, {
+                id_part: partId,
+                merk_part: produk.merk_part,
+                harga_part: produk.harga_part,
+                satuan_part: produk.satuan_part,
+              });
+            } else {
+              throw error;
+            }
+          }
         }
 
         transactionItems.push({

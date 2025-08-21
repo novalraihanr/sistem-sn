@@ -74,7 +74,6 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -85,8 +84,6 @@ export default function Sidebar() {
         }
       } catch (error) {
         console.error("Failed to fetch user data for sidebar:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -114,11 +111,10 @@ export default function Sidebar() {
   const renderNavItem = ({ label, href, icon, iconActive, onClick }) => {
     const isActive = href && pathname.startsWith(href);
 
-    const itemClasses = `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-      isActive
-        ? "bg-blue-50 text-[#1570EF]"
-        : "text-gray-700 hover:bg-gray-100"
-    }`;
+    const itemClasses = `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
+      ? "bg-blue-50 text-[#1570EF]"
+      : "text-gray-700 hover:bg-gray-100"
+      }`;
 
     if (onClick) {
       return (
@@ -167,12 +163,9 @@ export default function Sidebar() {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex flex-col p-4 gap-2">
-        {loading ? (
-          <div>Loading navigation...</div>
-        ) : (
-          filteredNavItemsMain.map(renderNavItem)
-        )}
+      <nav className="flex flex-col p-4 gap-2">{
+        filteredNavItemsMain.map(renderNavItem)
+      }
       </nav>
 
       {/* Bottom Navigation */}
