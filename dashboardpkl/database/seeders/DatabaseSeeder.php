@@ -20,13 +20,11 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@sncargo.com',
         ]);
 
-        Unit::factory(5)->create();
 
         $this->call([
             PartSeeder::class,
-            InventoriSeeder::class,
-            UnitPartSeeder::class,
             VendorPartSeeder::class,
+            CsvDataSeeder::class,
         ]);
     }
 }
