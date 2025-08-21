@@ -109,7 +109,7 @@ export default function TabelBestPrice() {
                   <td className="py-2 px-4 whitespace-nowrap">
                     <button
                       onClick={() =>
-                        router.push(`/vendor/${item.vendor_id}/detailvendor`)
+                        router.push(`/vendor/${item.id_vendor}/detailvendor`)
                       }
                       className="bg-[#1366D9] text-white px-3 py-1 rounded text-sm hover:bg-[#1570EF]"
                     >
@@ -127,9 +127,8 @@ export default function TabelBestPrice() {
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
-              currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+              }`}
           >
             Previous
           </button>
@@ -145,11 +144,10 @@ export default function TabelBestPrice() {
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
             disabled={currentPage === totalPages || totalPages === 0}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
-              currentPage === totalPages || totalPages === 0
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages || totalPages === 0
                 ? "opacity-50 cursor-not-allowed"
                 : ""
-            }`}
+              }`}
           >
             Next
           </button>

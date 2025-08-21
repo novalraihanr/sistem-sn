@@ -17,6 +17,7 @@ export default function TabelUser() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
 
   const dataPerHalaman = 20;
 
@@ -79,6 +80,7 @@ export default function TabelUser() {
         name: username,
         email: email,
         password: password,
+        password_confirmation: passwordConfirmation,
       });
       // refresh data
       await fetchData();
@@ -86,6 +88,7 @@ export default function TabelUser() {
       setUsername("");
       setEmail("");
       setPassword("");
+      setPasswordConfirmation(""); // Reset password confirmation
       setShowPopup(false);
     } catch (err) {
       alert("Gagal menambahkan user!");
@@ -97,6 +100,7 @@ export default function TabelUser() {
     setUsername("");
     setEmail("");
     setPassword("");
+    setPasswordConfirmation(""); // Reset password confirmation
   };
 
   if (error) {
@@ -219,6 +223,16 @@ export default function TabelUser() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Masukkan Password"
+                className="w-full border border-gray-300 px-3 py-2 rounded-sm text-sm"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm mb-1">Konfirmasi Password</label>
+              <input
+                type="text"
+                value={passwordConfirmation}
+                onChange={(e) => setPasswordConfirmation(e.target.value)}
+                placeholder="Konfirmasi Password"
                 className="w-full border border-gray-300 px-3 py-2 rounded-sm text-sm"
               />
             </div>

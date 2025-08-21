@@ -94,27 +94,24 @@ class PartController extends Controller
 
     public function getBestPrices()
     {
-        $bestPrices = DB::table('vendor_part as vp')
-            ->select(
-                'vp.id_part',
-                'p.nama_part',
-                'v.id_vendor',
-                'v.nama_vendor',
-                'vp.harga_part',
-                'vp.created_at',
-                'vp.updated_at'
-            )
-            ->join('part as p', 'vp.id_part', '=', 'p.id_part')
-            ->join('vendor as v', 'vp.id_vendor', '=', 'v.id_vendor')
-            ->joinSub(function ($query) {
-                $query->select('id_part', DB::raw('MIN(harga_part) as min_harga'))
-                    ->from('vendor_part')
-                    ->groupBy('id_part');
-            }, 'min_prices', function ($join) {
-                $join->on('vp.id_part', '=', 'min_prices.id_part')
-                    ->on('vp.harga_part', '=', 'min_prices.min_harga');
-            })
-            ->orderBy('p.nama_part')
+        $bestPrices = DB::query()
+            ->fromSub(function ($query) {
+                $query->select(
+                    'vp.id_part',
+                    'p.nama_part',
+                    'v.id_vendor',
+                    'v.nama_vendor',
+                    'vp.harga_part',
+                    'vp.created_at',
+                    'vp.updated_at',
+                    DB::raw('ROW_NUMBER() OVER (PARTITION BY vp.id_part ORDER BY vp.harga_part ASC, vp.updated_at DESC) as rn')
+                )
+                ->from('vendor_part as vp')
+                ->join('part as p', 'vp.id_part', '=', 'p.id_part')
+                ->join('vendor as v', 'vp.id_vendor', '=', 'v.id_vendor');
+            }, 'best_prices_ranked')
+            ->where('rn', 1)
+            ->orderBy('nama_part')
             ->get();
 
         return response()->json($bestPrices);
