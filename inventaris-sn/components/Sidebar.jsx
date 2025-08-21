@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { logout } from "@/app/api/auth.jsx";
+import { logout, getUser } from "@/app/api/auth.jsx";
+import { useEffect, useState } from "react";
 
 const navItemsMain = [
   {
@@ -58,18 +59,39 @@ const navItemsMain = [
     href: "/user",
     icon: "/icons/User.svg",
     iconActive: "/icons/User-active.svg",
+    roles: ['admin'],
   },
   {
     label: "History User",
     href: "/history",
     icon: "/icons/History.svg",
     iconActive: "/icons/History-active.svg",
+    roles: ['admin'],
   },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const response = await getUser();
+        if (response.data && response.data.role) {
+          setUserRole(response.data.role);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data for sidebar:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -127,6 +149,14 @@ export default function Sidebar() {
     );
   };
 
+  // Filter navItemsMain based on user role
+  const filteredNavItemsMain = navItemsMain.filter(item => {
+    if (item.roles) {
+      return item.roles.includes(userRole);
+    }
+    return true; // Show by default if no roles specified
+  });
+
   return (
     <aside className="h-screen w-64 bg-white fixed top-0 left-0 flex flex-col">
       {/* Logo */}
@@ -138,7 +168,11 @@ export default function Sidebar() {
 
       {/* Main Navigation */}
       <nav className="flex flex-col p-4 gap-2">
-        {navItemsMain.map(renderNavItem)}
+        {loading ? (
+          <div>Loading navigation...</div>
+        ) : (
+          filteredNavItemsMain.map(renderNavItem)
+        )}
       </nav>
 
       {/* Bottom Navigation */}

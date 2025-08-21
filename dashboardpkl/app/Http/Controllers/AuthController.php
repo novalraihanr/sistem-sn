@@ -51,6 +51,13 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         try {
+            // Authorization Check: Only admin can register new users if an admin is logged in
+            if (Auth::check() && Auth::user()->role !== 'admin') {
+                return response()->json([
+                    'message' => 'Unauthorized. Only admin users can register new users.',
+                ], 403); // 403 Forbidden
+            }
+
             $request->validate([
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
@@ -61,14 +68,22 @@ class AuthController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
+                'role' => 'member', // Use provided role, default to 'member'
             ]);
 
-            $token = $user->createToken('auth-token')->plainTextToken;
+            // Conditional login/response based on whether an admin is logged in
+            if (!Auth::check()) { // If no user is currently authenticated (self-registration)
+                Auth::login($user); // Log in the newly created user
+                return response()->json([
+                    'user' => Auth::user(), // Return the authenticated user
+                ], 201);
+            } else { // If an admin is authenticated
+                return response()->json([
+                    'message' => 'User registered successfully by admin.',
+                    'user' => $user, // Return the newly created user (not the admin)
+                ], 201);
+            }
 
-            return response()->json([
-                'user' => $user,
-                'token' => $token
-            ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Validation failed.',

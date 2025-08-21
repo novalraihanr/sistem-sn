@@ -29,8 +29,7 @@ export default function TabelUser() {
     } catch (err) {
       if (err.response) {
         setError(
-          `Error: ${err.response.status} ${
-            err.response.statusText
+          `Error: ${err.response.status} ${err.response.statusText
           } - ${JSON.stringify(err.response.data)}`
         );
       } else if (err.request) {
@@ -76,7 +75,7 @@ export default function TabelUser() {
 
   const handleTambahUser = async () => {
     try {
-      await APIEndpoint.post("/api/users", {
+      await APIEndpoint.post("/api/register", {
         name: username,
         email: email,
         password: password,

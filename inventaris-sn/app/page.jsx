@@ -18,7 +18,7 @@ export default function LoginPage() {
       const user = await getUser();
       console.log(user.data);
     } catch (error) {
-      console.error("Login failed:", error.response);
+      console.log("Login failed:", error.response);
     }
   };
 

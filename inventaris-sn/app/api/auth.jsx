@@ -10,7 +10,7 @@ export const login = async (email, password) => {
 }
 
 export const getUser = async () => {
-  return axios.get('/api/user');
+  return APIEndpoint.get('/api/user');
 }
 
 export const logout = async () => {
