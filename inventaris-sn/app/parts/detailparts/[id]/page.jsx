@@ -95,7 +95,6 @@ export default function DetailParts() {
     setKodeProduk("");
     setHargaProduk("");
     setMerkProduk("");
-    setTambahProduk(false);
   };
 
   // State untuk popup detail
@@ -174,12 +173,6 @@ export default function DetailParts() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="border border-gray-300 px-3 py-2 rounded-sm text-sm focus:outline-none focus:ring focus:border-blue-300"
                 />
-                <button
-                  onClick={() => setTambahProduk(true)}
-                  className="bg-[#1366D9] text-white text-sm px-3 py-2 rounded-sm hover:bg-[#1570EF]"
-                >
-                  + Tambah Produk
-                </button>
               </div>
             </div>
 

@@ -6,6 +6,9 @@ import APIEndpoint from "@/app/api/api";
 export default function TabelStockOut() {
   const itemsPerPage = 10;
   const [produkData, setProdukData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDataEmpty, setIsDataEmpty] = useState(false);
+  const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,11 +31,24 @@ export default function TabelStockOut() {
   }, [searchQuery]);
 
   const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    setIsDataEmpty(false);
+
     try {
       const res = await APIEndpoint.get("/api/stok-out");
-      setProdukData(res.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+      const fetchedData = res.data;
+
+      if (Array.isArray(fetchedData) && fetchedData.length === 0) {
+        setIsDataEmpty(true);
+      }
+      setProdukData(fetchedData);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Gagal memuat data. Silakan coba lagi nanti.");
+      setIsDataEmpty(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -132,7 +148,8 @@ export default function TabelStockOut() {
       setProdukData((prev) => [newStokOut, ...prev]);
       setShowModal(false);
       resetForm();
-      fetchData(); // Refetch data after successful submission
+      fetchData();
+      window.location.reload();
     } catch (error) {
       console.error("Error adding stock out:", error);
       alert(
@@ -235,7 +252,10 @@ export default function TabelStockOut() {
       {showDetail && selectedProduct ? (
         <DetailStockOut
           product={selectedProduct}
-          onClose={() => setShowDetail(false)}
+          onClose={() => {
+            setShowDetail(false);
+            window.location.reload();
+          }}
         />
       ) : (
         <>
@@ -255,7 +275,7 @@ export default function TabelStockOut() {
               >
                 + Tambah Stock Out
               </button>
-              
+
               {/* Filter Bulan */}
               <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
                 <img
@@ -325,33 +345,47 @@ export default function TabelStockOut() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.map((item, index) => (
-                  <tr
-                    key={index}
-                    className="border-b text-[#383E49] border-[#D0D3D9]"
-                  >
-                    <td className="py-2 px-4">{item.stokin_tanggal}</td>
-                    <td
-                      className="py-2 px-4 text-gray-500 underline hover:text-gray-600 cursor-pointer"
-                      onClick={() => {
-                        setSelectedProduct(item);
-                        setShowDetail(true);
-                      }}
-                    >
-                      {item.inventori?.nama_produk}
+                {isLoading ? (
+                  <tr className="text-center">
+                    <td colSpan="9" className="py-4">
+                      Loading...
                     </td>
-                    <td className="py-2 px-4">{item.stokout_kuantitas}</td>
-                    <td className="py-2 px-4">
-                      {item.stokout_spesifikasi || "-"}
-                    </td>
-                    <td className="py-2 px-4">
-                      {item.inventori?.produk_satuan}
-                    </td>
-                    <td className="py-2 px-4">{item.stokout_digunakan}</td>
-                    <td className="py-2 px-4">{item.stokout_divisi}</td>
-                    <td className="py-2 px-4">{item.stokout_keterangan}</td>
                   </tr>
-                ))}
+                ) : isDataEmpty ? (
+                  <tr className="text-center">
+                    <td colSpan="9" className="py-4">
+                      Tidak ada data ditemukan
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((item, index) => (
+                    <tr
+                      key={index}
+                      className="border-b text-[#383E49] border-[#D0D3D9]"
+                    >
+                      <td className="py-2 px-4">{item.stokin_tanggal}</td>
+                      <td
+                        className="py-2 px-4 text-gray-500 underline hover:text-gray-600 cursor-pointer"
+                        onClick={() => {
+                          setSelectedProduct(item);
+                          setShowDetail(true);
+                        }}
+                      >
+                        {item.inventori?.nama_produk}
+                      </td>
+                      <td className="py-2 px-4">{item.stokout_kuantitas}</td>
+                      <td className="py-2 px-4">
+                        {item.stokout_spesifikasi || "-"}
+                      </td>
+                      <td className="py-2 px-4">
+                        {item.inventori?.produk_satuan}
+                      </td>
+                      <td className="py-2 px-4">{item.stokout_digunakan}</td>
+                      <td className="py-2 px-4">{item.stokout_divisi}</td>
+                      <td className="py-2 px-4">{item.stokout_keterangan}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
 

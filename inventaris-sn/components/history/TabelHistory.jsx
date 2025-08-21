@@ -7,10 +7,12 @@ export default function TabelHistory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true); // 🔹 state loading
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
+        setLoading(true); // mulai loading
         const response = await APIEndpoint.get(
           `/api/historyusers?page=${currentPage}`
         );
@@ -19,6 +21,8 @@ export default function TabelHistory() {
         setCurrentPage(response.data.current_page);
       } catch (error) {
         console.error('Error fetching history data:', error);
+      } finally {
+        setLoading(false); // selesai loading
       }
     };
 
@@ -44,9 +48,9 @@ export default function TabelHistory() {
     }
   };
 
-  // Reset ke halaman 1 saat search berubah
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
+    setCurrentPage(1); // reset halaman saat search
   };
 
   return (
@@ -76,7 +80,13 @@ export default function TabelHistory() {
           </tr>
         </thead>
         <tbody>
-          {filteredData.length > 0 ? (
+          {loading ? (
+            <tr>
+              <td colSpan="4" className="px-4 py-4 text-center text-gray-500">
+                Loading...
+              </td>
+            </tr>
+          ) : filteredData.length > 0 ? (
             filteredData.map((item, i) => (
               <tr key={i} className="border-t border-gray-200">
                 <td className="px-4 py-2">{item.tanggal}</td>
@@ -90,7 +100,7 @@ export default function TabelHistory() {
           ) : (
             <tr>
               <td colSpan="4" className="px-4 py-4 text-center text-gray-400">
-                No data found
+                Tidak ada data
               </td>
             </tr>
           )}
@@ -102,10 +112,11 @@ export default function TabelHistory() {
         <button
           onClick={handlePrevPage}
           disabled={currentPage === 1}
-          className={`border border-gray-300 px-3 py-1 rounded ${currentPage === 1
+          className={`border border-gray-300 px-3 py-1 rounded ${
+            currentPage === 1
               ? 'opacity-50 cursor-not-allowed'
               : 'hover:bg-gray-100'
-            }`}
+          }`}
         >
           Previous
         </button>
@@ -115,10 +126,11 @@ export default function TabelHistory() {
         <button
           onClick={handleNextPage}
           disabled={currentPage === totalPages || totalPages === 0}
-          className={`border border-gray-300 px-3 py-1 rounded ${currentPage === totalPages || totalPages === 0
+          className={`border border-gray-300 px-3 py-1 rounded ${
+            currentPage === totalPages || totalPages === 0
               ? 'opacity-50 cursor-not-allowed'
               : 'hover:bg-gray-100'
-            }`}
+          }`}
         >
           Next
         </button>

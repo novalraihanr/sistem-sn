@@ -8,6 +8,8 @@ export default function TabelBestPrice() {
   const itemsPerPage = 20;
   const [allData, setAllData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true); // 🔹 state untuk loading
   const router = useRouter();
 
   const totalPages = Math.ceil(allData.length / itemsPerPage);
@@ -15,17 +17,24 @@ export default function TabelBestPrice() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true); // mulai loading
         const response = await APIEndpoint.get("/api/part/best-prices");
         setAllData(response.data);
       } catch (error) {
         console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false); // selesai loading
       }
     };
 
     fetchData();
   }, []);
 
-  const paginatedData = allData.slice(
+  const filteredData = allData.filter((item) =>
+    item.nama_part.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -41,6 +50,11 @@ export default function TabelBestPrice() {
           <input
             type="text"
             placeholder="Search produk..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             className="border border-gray-300 px-3 py-2 rounded-sm text-sm focus:outline-none focus:ring focus:border-blue-300"
           />
         </div>
@@ -59,36 +73,52 @@ export default function TabelBestPrice() {
             </tr>
           </thead>
           <tbody>
-            {paginatedData.map((item) => (
-              <tr
-                key={`${item.id_part}-${item.id_vendor}`}
-                className="border-b text-[#383E49] border-[#D0D3D9]"
-              >
-                <td className="py-2 px-4 w-1/3">{item.nama_part}</td>
-                <td className="py-2 px-4 whitespace-nowrap">
-                  {item.nama_vendor}
-                </td>
-                <td className="py-2 px-4 whitespace-nowrap">
-                  {new Intl.NumberFormat("id-ID", {
-                    style: "currency",
-                    currency: "IDR",
-                  }).format(item.harga_part)}
-                </td>
-                <td className="py-2 px-4 whitespace-nowrap">
-                  {new Date(item.updated_at || item.created_at || Date.now()).toLocaleDateString("id-ID")}
-                </td>
-                <td className="py-2 px-4 whitespace-nowrap">
-                  <button
-                    onClick={() =>
-                      router.push(`/vendor/${item.vendor_id}/detailvendor`)
-                    }
-                    className="bg-[#1366D9] text-white px-3 py-1 rounded text-sm hover:bg-[#1570EF]"
-                  >
-                    Detail Parts
-                  </button>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="text-center py-4 text-gray-500">
+                  Loading...
                 </td>
               </tr>
-            ))}
+            ) : paginatedData.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-4 text-gray-500">
+                  Tidak ada data
+                </td>
+              </tr>
+            ) : (
+              paginatedData.map((item) => (
+                <tr
+                  key={`${item.id_part}-${item.id_vendor}`}
+                  className="border-b text-[#383E49] border-[#D0D3D9]"
+                >
+                  <td className="py-2 px-4 w-1/3">{item.nama_part}</td>
+                  <td className="py-2 px-4 whitespace-nowrap">
+                    {item.nama_vendor}
+                  </td>
+                  <td className="py-2 px-4 whitespace-nowrap">
+                    {new Intl.NumberFormat("id-ID", {
+                      style: "currency",
+                      currency: "IDR",
+                    }).format(item.harga_part)}
+                  </td>
+                  <td className="py-2 px-4 whitespace-nowrap">
+                    {new Date(
+                      item.updated_at || item.created_at || Date.now()
+                    ).toLocaleDateString("id-ID")}
+                  </td>
+                  <td className="py-2 px-4 whitespace-nowrap">
+                    <button
+                      onClick={() =>
+                        router.push(`/vendor/${item.vendor_id}/detailvendor`)
+                      }
+                      className="bg-[#1366D9] text-white px-3 py-1 rounded text-sm hover:bg-[#1570EF]"
+                    >
+                      Detail Parts
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
 
@@ -97,8 +127,9 @@ export default function TabelBestPrice() {
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             Previous
           </button>
@@ -113,9 +144,12 @@ export default function TabelBestPrice() {
             onClick={() =>
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
-            disabled={currentPage === totalPages}
-            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+              currentPage === totalPages || totalPages === 0
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }`}
           >
             Next
           </button>

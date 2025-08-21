@@ -7,6 +7,9 @@ import APIEndpoint from "@/app/api/api";
 export default function TabelStockIn() {
   const itemsPerPage = 10;
   const [produkData, setProdukData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDataEmpty, setIsDataEmpty] = useState(false);
+  const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,11 +43,24 @@ export default function TabelStockIn() {
   }, [searchQuery]);
 
   const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    setIsDataEmpty(false);
+
     try {
       const res = await APIEndpoint.get("/api/stok-in");
-      setProdukData(res.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+      const fetchedData = res.data;
+
+      if (Array.isArray(fetchedData) && fetchedData.length === 0) {
+        setIsDataEmpty(true);
+      }
+      setProdukData(fetchedData);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Gagal memuat data. Silakan coba lagi nanti.");
+      setIsDataEmpty(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -121,7 +137,8 @@ export default function TabelStockIn() {
       setProdukData((prev) => [newStokIn, ...prev]);
       setShowModal(false);
       resetForm();
-      fetchData(); // Refetch data after successful submission
+      fetchData();
+      window.location.reload();
     } catch (error) {
       console.error("Error adding stock in:", error);
       alert(
@@ -183,7 +200,13 @@ export default function TabelStockIn() {
     })
     .sort((a, b) => new Date(b.stokin_tanggal) - new Date(a.stokin_tanggal)); // paling baru dulu
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [filteredData.length, totalPages]);
 
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -209,7 +232,10 @@ export default function TabelStockIn() {
       {showDetail && selectedProduct ? (
         <DetailStockIn
           product={selectedProduct}
-          onClose={() => setShowDetail(false)}
+          onClose={() => {
+            setShowDetail(false);
+            window.location.reload();
+          }}
           refetchData={fetchData}
         />
       ) : (
@@ -307,46 +333,60 @@ export default function TabelStockIn() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.map((item, index) => (
-                  <tr
-                    key={item.id_stokin}
-                    className="border-b text-[#383E49] border-[#D0D3D9]"
-                  >
-                    <td className="py-2 px-4">{item.stokin_tanggal}</td>
-                    <td
-                      className="py-2 px-4 text-gray-500 underline hover:text-gray-600 cursor-pointer"
-                      onClick={() => {
-                        setSelectedProduct(item);
-                        setShowDetail(true);
-                      }}
-                    >
-                      {item.inventori?.nama_produk}
-                    </td>
-                    <td className="py-2 px-4">{item.stokin_kuantitas}</td>
-                    <td className="py-2 px-4">
-                      {item.inventori?.produk_satuan}
-                    </td>
-                    <td className="py-2 px-4">
-                      {item.stokin_spesifikasi || "-"}
-                    </td>
-                    <td className="py-2 px-4">{item.stokin_nopomo}</td>
-                    <td className="py-2 px-4">{item.stokin_digunakan}</td>
-                    <td className="py-2 px-4">
-                      {new Intl.NumberFormat("id-ID", {
-                        style: "currency",
-                        currency: "IDR",
-                        minimumFractionDigits: 0,
-                      }).format(item.stokin_harga_produk)}
-                    </td>
-                    <td className="py-2 px-4">
-                      {new Intl.NumberFormat("id-ID", {
-                        style: "currency",
-                        currency: "IDR",
-                        minimumFractionDigits: 0,
-                      }).format(item.stokin_harga_total)}
+                {isLoading ? (
+                  <tr className="text-center">
+                    <td colSpan="9" className="py-4">
+                      Loading...
                     </td>
                   </tr>
-                ))}
+                ) : isDataEmpty ? (
+                  <tr className="text-center">
+                    <td colSpan="9" className="py-4">
+                      Tidak ada data ditemukan
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((item) => (
+                    <tr
+                      key={item.id_stokin}
+                      className="border-b text-[#383E49] border-[#D0D3D9]"
+                    >
+                      <td className="py-2 px-4">{item.stokin_tanggal}</td>
+                      <td
+                        className="py-2 px-4 text-gray-500 underline hover:text-gray-600 cursor-pointer"
+                        onClick={() => {
+                          setSelectedProduct(item);
+                          setShowDetail(true);
+                        }}
+                      >
+                        {item.inventori?.nama_produk}
+                      </td>
+                      <td className="py-2 px-4">{item.stokin_kuantitas}</td>
+                      <td className="py-2 px-4">
+                        {item.inventori?.produk_satuan}
+                      </td>
+                      <td className="py-2 px-4">
+                        {item.stokin_spesifikasi || "-"}
+                      </td>
+                      <td className="py-2 px-4">{item.stokin_nopomo}</td>
+                      <td className="py-2 px-4">{item.stokin_digunakan}</td>
+                      <td className="py-2 px-4">
+                        {new Intl.NumberFormat("id-ID", {
+                          style: "currency",
+                          currency: "IDR",
+                          minimumFractionDigits: 0,
+                        }).format(item.stokin_harga_produk)}
+                      </td>
+                      <td className="py-2 px-4">
+                        {new Intl.NumberFormat("id-ID", {
+                          style: "currency",
+                          currency: "IDR",
+                          minimumFractionDigits: 0,
+                        }).format(item.stokin_harga_total)}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
 

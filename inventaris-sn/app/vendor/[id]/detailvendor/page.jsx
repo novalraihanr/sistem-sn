@@ -228,7 +228,7 @@ export default function DetailVendor() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2">
+              <div className="flex items-center gap-2">
                 {!isEditMode && (
                   <>
                     <button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-1 rounded">

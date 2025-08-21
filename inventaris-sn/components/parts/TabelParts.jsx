@@ -10,6 +10,7 @@ export default function TabelParts() {
   const [showEdit, setEdit] = useState(false);
   const [namaKategori, setNamaKategori] = useState("");
   const [editKategoriId, setEditKategoriId] = useState(null);
+  const [loading, setLoading] = useState(true); // ⬅️ state loading
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
@@ -17,7 +18,9 @@ export default function TabelParts() {
   const handleDelete = async (id) => {
     try {
       await APIEndpoint.delete(`/api/kategori-part/${id}`);
-      setKategoriParts((prev) => prev.filter((kategori) => kategori.id_kategori_part !== id));
+      setKategoriParts((prev) =>
+        prev.filter((kategori) => kategori.id_kategori_part !== id)
+      );
     } catch (error) {
       console.error("Error deleting kategori part:", error);
     }
@@ -26,10 +29,13 @@ export default function TabelParts() {
   useEffect(() => {
     const fetchKategoriParts = async () => {
       try {
+        setLoading(true); // mulai loading
         const response = await APIEndpoint.get("/api/kategori-part");
         setKategoriParts(response.data);
       } catch (error) {
         console.error("Error fetching kategori parts:", error);
+      } finally {
+        setLoading(false); // selesai loading
       }
     };
     fetchKategoriParts();
@@ -47,7 +53,10 @@ export default function TabelParts() {
         nama_kategori: namaKategori,
       };
 
-      const response = await APIEndpoint.post("/api/kategori-part", newKategori);
+      const response = await APIEndpoint.post(
+        "/api/kategori-part",
+        newKategori
+      );
       const savedData = response.data;
 
       setKategoriParts((prev) => [...prev, savedData]);
@@ -122,6 +131,17 @@ export default function TabelParts() {
     currentPage * itemsPerPage
   );
 
+  // Fungsi cek jumlah produk
+  const handleCheckProduk = (kategori) => {
+    if (kategori.parts?.length === 0) {
+      alert(
+        `Tidak ada produk yang memiliki kategori "${kategori.nama_kategori}"`
+      );
+      return;
+    }
+    router.push(`/parts/detailparts/${kategori.id_kategori_part}`);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm w-full">
       {/* Header */}
@@ -155,38 +175,52 @@ export default function TabelParts() {
             </tr>
           </thead>
           <tbody>
-            {paginatedData.map((kategori) => (
-              <tr key={kategori.id_kategori_part} className="border-t border-[#E5E7EB]">
-                <td
-                  onClick={() => router.push(`/parts/detailparts/${kategori.id_kategori_part}`)}
-                  className="py-2 px-4 text-gray-500 underline hover:text-gray-600 cursor-pointer"
-                >
-                  {kategori.nama_kategori}
-                </td>
-                <td className="py-2 px-4">{kategori.parts?.length || 0}</td>
-                <td className="py-2 px-4 flex gap-x-2">
-                  <button
-                    className="flex gap-x-2 border border-[#D0D3D9] px-3 py-1 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100"
-                    onClick={() => handleShowEdit(kategori)}
-                  >
-                    <img src="/icons/Edit.svg" alt="Edit" className="w-4 h-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(kategori.id_kategori_part)}
-                    className="bg-[#C62828] hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                  >
-                    Hapus
-                  </button>
+            {loading ? (
+              <tr>
+                <td className="py-4 px-4 text-center text-gray-500" colSpan={3}>
+                  Loading...
                 </td>
               </tr>
-            ))}
-            {paginatedData.length === 0 && (
+            ) : paginatedData.length === 0 ? (
               <tr>
                 <td className="py-4 px-4 text-center text-gray-500" colSpan={3}>
                   Tidak ada data.
                 </td>
               </tr>
+            ) : (
+              paginatedData.map((kategori) => (
+                <tr
+                  key={kategori.id_kategori_part}
+                  className="border-t border-[#E5E7EB]"
+                >
+                  <td
+                    onClick={() => handleCheckProduk(kategori)} // ⬅️ pake fungsi baru
+                    className="py-2 px-4 text-gray-500 underline hover:text-gray-600 cursor-pointer"
+                  >
+                    {kategori.nama_kategori}
+                  </td>
+                  <td className="py-2 px-4">{kategori.parts?.length || 0}</td>
+                  <td className="py-2 px-4 flex gap-x-2">
+                    <button
+                      className="flex gap-x-2 border border-[#D0D3D9] px-3 py-1 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100"
+                      onClick={() => handleShowEdit(kategori)}
+                    >
+                      <img
+                        src="/icons/Edit.svg"
+                        alt="Edit"
+                        className="w-4 h-4"
+                      />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(kategori.id_kategori_part)}
+                      className="bg-[#C62828] hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                    >
+                      Hapus
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>

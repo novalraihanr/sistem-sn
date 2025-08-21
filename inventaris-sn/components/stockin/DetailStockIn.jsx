@@ -43,7 +43,7 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
     fetchStockInDetail();
   }, [product]);
 
-  if (loading) return <div>Loading details...</div>;
+  if (loading) return <div className="p-4">Loading details...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!editedProduct.id_stokin) return null;
 

@@ -80,10 +80,8 @@ export default function DetailUser() {
       }
     }
   };
-  
-  if (loading) return <div className="text-center p-4">Loading...</div>;
+
   if (error) return <div className="text-center p-4 text-red-500">Error: {error}</div>;
-  if (!user) return <div className="text-center p-4">User not found.</div>;
 
   return (
     <div className="bg-[#F0F1F3] min-h-screen">

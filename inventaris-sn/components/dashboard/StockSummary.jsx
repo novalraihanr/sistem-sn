@@ -10,20 +10,20 @@ export default function StockSummary() {
   const dropdownRef = useRef(null);
 
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState("Parts");
+  const [selectedFilter, setSelectedFilter] = useState("ATK");
 
   const [stockData, setStockData] = useState({
     in: Array(12).fill(0),
     out: Array(12).fill(0),
   });
-  const [availableParts, setAvailableParts] = useState(["Parts"]);
+  const [availableParts, setAvailableParts] = useState(["ATK"]);
 
   useEffect(() => {
     const fetchChartData = async () => {
       try {
         const res = await APIEndpoint.get("/api/inventori/monthly-stock-data", {
           params: {
-            nama_produk: selectedFilter === "Parts" ? null : selectedFilter,
+            nama_produk: selectedFilter === "ATK" ? null : selectedFilter,
           },
         });
 
@@ -47,7 +47,7 @@ export default function StockSummary() {
     const fetchProductNames = async () => {
       try {
         const res = await APIEndpoint.get("/api/inventori/product-names");
-        setAvailableParts(["Parts", ...res.data]);
+        setAvailableParts(["ATK", ...res.data]);
       } catch (error) {
         console.error("Error fetching product names:", error);
       }
@@ -56,6 +56,19 @@ export default function StockSummary() {
     fetchChartData();
     fetchProductNames();
   }, [selectedFilter]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
 
   // Update Grafik
   useEffect(() => {
