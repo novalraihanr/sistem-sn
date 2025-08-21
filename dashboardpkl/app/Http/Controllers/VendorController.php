@@ -96,11 +96,15 @@ class VendorController extends Controller
         return response()->json(null, 204);
     }
 
+    public function searchByName(string $name)
+    {
+        $vendors = Vendor::where('nama_vendor', 'like', '%' . $name . '%')->get();
+        return response()->json($vendors);
+    }
+
     public function getVendorParts(int $vendorId)
     {
-        $vendor = Vendor::with(['parts' => function($query) {
-            $query->withPivot('harga_part', 'merk_part', 'harga_sebelumnya_part');
-        }])->findOrFail($vendorId);
+        $vendor = Vendor::with('parts.kategoriPart')->findOrFail($vendorId);
         return response()->json($vendor->parts);
     }
 }

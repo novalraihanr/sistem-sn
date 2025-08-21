@@ -13,14 +13,12 @@ return new class extends Migration
     {
         Schema::create('vendor_part', function (Blueprint $table) {
             $table->id('id_vendorpart');
-            $table->unsignedBigInteger('id_part');
+            $table->string('id_part');
             $table->unsignedBigInteger('id_vendor');
             $table->double('harga_part');
             $table->double('harga_sebelumnya_part')->nullable(true);
             $table->string('merk_part');
             $table->string('satuan_part');
-            $table->string('updatedby')->nullable(true);
-            $table->string('createdby');
             $table->timestamps();
 
             $table->foreign('id_part')->references('id_part')->on('part')->onDelete('cascade');

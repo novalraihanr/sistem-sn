@@ -34,7 +34,7 @@ class KategoriPartController extends Controller
             HistoryUsersController::record("{$user->name} telah menambahkan kategori part baru: {$kategoriPart->nama_kategori}");
         }
 
-        return response()->json($kategoriPart, 201);
+        return response()->json($kategoriPart->load('parts'), 201);
     }
 
     /**
@@ -111,5 +111,23 @@ class KategoriPartController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    public function firstOrCreate(Request $request)
+    {
+        $request->validate([
+            'nama_kategori' => 'required|string|max:255',
+        ]);
+
+        $kategoriPart = KategoriPart::firstOrCreate(
+            ['nama_kategori' => $request->nama_kategori]
+        );
+
+        $user = Auth::user();
+        if ($user && $kategoriPart->wasRecentlyCreated) {
+            HistoryUsersController::record("{$user->name} telah menambahkan kategori part baru: {$kategoriPart->nama_kategori}");
+        }
+
+        return response()->json($kategoriPart->load('parts'), $kategoriPart->wasRecentlyCreated ? 201 : 200);
     }
 }

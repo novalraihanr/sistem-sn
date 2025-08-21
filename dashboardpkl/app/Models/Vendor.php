@@ -17,6 +17,6 @@ class Vendor extends Model
     {
         return $this->belongsToMany(Part::class, 'vendor_part', 'id_vendor', 'id_part')
             ->using(VendorPart::class)
-            ->withPivot('harga_part', 'merk_part');
+            ->withPivot('harga_part', 'merk_part', 'satuan_part');
     }
 }

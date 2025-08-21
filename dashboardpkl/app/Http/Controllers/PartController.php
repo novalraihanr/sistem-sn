@@ -27,6 +27,7 @@ class PartController extends Controller
         $request->validate([
             'nama_part' => 'required|string|max:255',
             'id_kategori_part' => 'required|exists:kategori_part,id_kategori_part',
+            'id_part' => 'nullable|string|max:255',
         ]);
 
         $user = Auth::user();
@@ -34,9 +35,9 @@ class PartController extends Controller
         $part = Part::firstOrCreate(
             [
                 'nama_part' => $request->nama_part,
-                'id_kategori_part' => $request->id_kategori_part
-            ],
-            ['createdby' => $user->name]
+                'id_kategori_part' => $request->id_kategori_part,
+                'id_part' => $request->id_part,
+            ]
         );
 
         if ($part->wasRecentlyCreated) {
@@ -53,7 +54,7 @@ class PartController extends Controller
      */
     public function show(Part $part)
     {
-        return response()->json($part->load('kategoriPart', 'vendors'));
+        return response()->json(Part::with('kategoriPart', 'vendors')->find($part->id_part));
     }
 
     /**
@@ -62,18 +63,17 @@ class PartController extends Controller
     public function update(Request $request, Part $part)
     {
         $request->validate([
-            'nama_part' => 'required|string|max:255',
-            'id_kategori_part' => 'required|exists:kategori_part,id_kategori_part',
+            'nama_part' => 'sometimes|string|max:255',
+            'id_kategori_part' => 'sometimes|exists:kategori_part,id_kategori_part',
+            'id_part' => 'sometimes|string|max:255',
         ]);
 
         $user = Auth::user();
         $oldName = $part->nama_part;
 
-        $part->update([
-            'nama_part' => $request->nama_part,
-            'id_kategori_part' => $request->id_kategori_part,
-            'updatedby' => $user->name,
-        ]);
+        $updateData = $request->only(['nama_part', 'id_kategori_part', 'id_part']);
+
+        $part->update($updateData);
 
         HistoryUsersController::record("{$user->name} telah mengupdate part: {$oldName} menjadi {$part->nama_part}");
 

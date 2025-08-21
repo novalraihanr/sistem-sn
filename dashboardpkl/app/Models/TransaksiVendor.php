@@ -9,7 +9,7 @@ class TransaksiVendor extends Model
 {
     protected $table = 'transaksi_vendor';
     protected $primaryKey = 'id_transaksivendor';
-    protected $fillable = ['id_transaksi', 'id_vendorpart', 'jumlah', 'total_harga'];
+    protected $fillable = ['id_transaksi', 'id_vendorpart', 'harga_part_saat_ini', 'jumlah', 'total_harga'];
 
     public function transaksi(): BelongsTo
     {

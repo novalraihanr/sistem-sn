@@ -19,9 +19,7 @@ class Part extends Model
     protected $fillable = [
         'id_part',
         'nama_part',
-        'id_kategori_part',
-        'createdby',
-        'updatedby'
+        'id_kategori_part'
     ];
 
     public function kategoriPart(): BelongsTo

@@ -4,15 +4,28 @@ import Sidebar from "@/components/Sidebar";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function AddTransaction() {
+import APIEndpoint from "@/app/api/api";
+
+export default function AddVendor() {
   const router = useRouter();
+
+  const [vendorName, setVendorName] = useState("");
+  const [vendorContact, setVendorContact] = useState("");
+  const [vendorAddress, setVendorAddress] = useState("");
 
   const [produkList, setProdukList] = useState([]);
 
-  const handleTambahVendor = () => {
+  const handleTambahProduk = () => {
     setProdukList([
       ...produkList,
-      { nama: "", kode: "", kategori: "", harga: 0, satuan: "", jumlah: 0, merk: "" },
+      {
+        part_name: "",
+        kategori_name: "",
+        kode_part: "",
+        merk_part: "",
+        harga_part: 0,
+        satuan_part: "",
+      },
     ]);
   };
 
@@ -24,14 +37,74 @@ export default function AddTransaction() {
 
   const handleChange = (index, field, value) => {
     const newList = [...produkList];
-    newList[index][field] = value;
+    const updatedItem = { ...newList[index] };
+
+    if (field === "harga_part") {
+      updatedItem[field] = parseInt(value) || 0;
+    } else {
+      updatedItem[field] = value;
+    }
+
+    newList[index] = updatedItem;
     setProdukList(newList);
   };
 
-  const totalHarga = produkList.reduce(
-    (total, produk) => total + produk.harga * produk.jumlah,
-    0
-  );
+  const handleSaveVendor = async () => {
+    if (!vendorName || !vendorContact || !vendorAddress) {
+      alert("Harap lengkapi informasi vendor.");
+      return;
+    }
+
+    if (produkList.length === 0) {
+      alert("Harap tambahkan setidaknya satu produk.");
+      return;
+    }
+
+    try {
+      // 1. Create or find Vendor
+      const vendorRes = await APIEndpoint.post("/api/vendor", {
+        nama_vendor: vendorName,
+        alamat_vendor: vendorAddress,
+        kontak_vendor: vendorContact,
+      });
+      const vendorId = vendorRes.data.id_vendor;
+
+      const transactionItems = []; // Renamed from transactionItems to vendorParts for clarity
+      for (const produk of produkList) {
+        // 2. Create or find Kategori Part
+        const kategoriRes = await APIEndpoint.post("/api/kategori-part/first-or-create", {
+          nama_kategori: produk.kategori_name,
+        });
+        const idKategoriPart = kategoriRes.data.id_kategori_part;
+
+        // 3. Create or find Part
+        const partRes = await APIEndpoint.post("/api/part", {
+          nama_part: produk.part_name,
+          id_kategori_part: idKategoriPart,
+          id_part: produk.kode_part,
+        });
+        const partId = partRes.data.id_part;
+
+        // 3. Add Part to Vendor (creates vendor_part if not exists)
+        // This endpoint expects id_part, merk_part, harga_part, satuan_part
+        await APIEndpoint.post(`/api/vendor-part/${vendorId}/part`, {
+          id_part: partId,
+          merk_part: produk.merk_part,
+          harga_part: produk.harga_part,
+          satuan_part: produk.satuan_part,
+        });
+
+        // No need to push to transactionItems for this page, as it's not a multi-part transaction
+        // but rather adding parts to a vendor.
+      }
+
+      alert("Vendor dan produk berhasil ditambahkan!");
+      router.push("/vendor");
+    } catch (error) {
+      console.error("Gagal menyimpan vendor dan produk:", error);
+      alert("Gagal menyimpan vendor dan produk. Silakan coba lagi.");
+    }
+  };
 
   return (
     <div className="bg-[#F0F1F3] min-h-screen">
@@ -41,7 +114,9 @@ export default function AddTransaction() {
           <div className="bg-white rounded-lg shadow-sm w-full p-4">
             {/* Header */}
             <div className="mb-5 flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-[#383E49]">Vendor</h2>
+              <h2 className="text-xl font-semibold text-[#383E49]">
+                Tambah Vendor
+              </h2>
               <button
                 className="text-gray-400 hover:text-gray-600 text-3xl font-bold"
                 onClick={() => router.push("/vendor")}
@@ -56,64 +131,81 @@ export default function AddTransaction() {
             </div>
             {/* Detail Vendor */}
             <div className="p-2 mb-8">
-              <h3 className="font-bold text-[#48505E] mb-5">Detail Vendor</h3>
+              <h3 className="font-bold text-[#48505E] mb-5">
+                Detail Vendor
+              </h3>
               <div className="grid gap-4 text-sm text-[#383E49]">
                 {[
                   {
                     label: "Nama Vendor",
                     key: "nama_vendor",
                     placeholder: "Masukkan nama vendor",
-                  },
-                  {
-                    label: "Kode",
-                    key: "kode",
-                    placeholder: "Masukkan kode vendor",
+                    type: "text",
                   },
                   {
                     label: "Nomor Kontak",
                     key: "nomor_kontak",
                     placeholder: "Masukkan nomor kontak",
+                    type: "text",
                   },
                   {
                     label: "Alamat",
                     key: "alamat",
                     placeholder: "Masukkan alamat vendor",
+                    type: "textarea",
                   },
                 ].map(
-                  ({
-                    label,
-                    key,
-                    type = "text",
-                    placeholder = "",
-                    readOnly = false,
-                    className = "",
-                  }) => (
-                    <div key={key} className="flex items-center gap-4 mb-2">
-                      <p className="w-40 text-gray-500">{label}</p>
-                      <input
-                        type={type}
-                        placeholder={placeholder}
-                        readOnly={readOnly}
-                        className={`w-[450px] border rounded-md px-2 py-1 ${className}`}
-                      />
-                    </div>
-                  )
+                  ({ label, key, type, placeholder }) => {
+                    let value = "", setter = () => { };
+                    if (key === "nama_vendor") {
+                      value = vendorName;
+                      setter = setVendorName;
+                    } else if (key === "nomor_kontak") {
+                      value = vendorContact;
+                      setter = setVendorContact;
+                    } else if (key === "alamat") {
+                      value = vendorAddress;
+                      setter = setVendorAddress;
+                    }
+
+                    return (
+                      <div key={key} className="flex items-center gap-4 mb-2">
+                        <p className="w-40 text-gray-500 capitalize">{label}</p>
+                        {type === "textarea" ? (
+                          <textarea
+                            placeholder={placeholder}
+                            value={value}
+                            onChange={(e) => setter(e.target.value)}
+                            className="w-[450px] border rounded-md px-2 py-1 h-24 resize-none"
+                          />
+                        ) : (
+                          <input
+                            type={type}
+                            placeholder={placeholder}
+                            value={value}
+                            onChange={(e) => setter(e.target.value)}
+                            className="w-[450px] border rounded-md px-2 py-1"
+                          />
+                        )}
+                      </div>
+                    );
+                  }
                 )}
               </div>
             </div>
             {/* Produk Detail */}
             <div className="p-2">
-              <h3 className="font-bold text-[#48505E] mb-4">Detail Produk</h3>
+              <h3 className="font-bold text-[#48505E] mb-4">Produk Details</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm text-left text-[#383E49] border-collapse">
                   <thead className="bg-[#F9FAFB] text-gray-500">
                     <tr>
-                      <th className="px-4 py-2 w-[200px]">Produk</th>
-                      <th className="px-4 py-2">Kode</th>
+                      <th className="px-4 py-2 w-[200px]">Nama Part</th>
                       <th className="px-4 py-2">Kategori</th>
-                      <th className="px-4 py-2">Harga Produk</th>
+                      <th className="px-4 py-2">Kode</th>
+                      <th className="px-4 py-2">Merk</th>
                       <th className="px-4 py-2">Satuan</th>
-                      <th className="px-4 py-2">Merk Produk</th>
+                      <th className="px-4 py-2">Harga</th>
                       <th className="px-4 py-2">Aksi</th>
                     </tr>
                   </thead>
@@ -125,9 +217,9 @@ export default function AddTransaction() {
                             <input
                               type="text"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
-                              value={produk.nama}
+                              value={produk.part_name}
                               onChange={(e) =>
-                                handleChange(index, "nama", e.target.value)
+                                handleChange(index, "part_name", e.target.value)
                               }
                             />
                           </div>
@@ -137,9 +229,21 @@ export default function AddTransaction() {
                             <input
                               type="text"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
-                              value={produk.kode}
+                              value={produk.kategori_name}
                               onChange={(e) =>
-                                handleChange(index, "kode", e.target.value)
+                                handleChange(index, "kategori_name", e.target.value)
+                              }
+                            />
+                          </div>
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="maxpart-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                            <input
+                              type="text"
+                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              value={produk.kode_part}
+                              onChange={(e) =>
+                                handleChange(index, "kode_part", e.target.value)
                               }
                             />
                           </div>
@@ -149,9 +253,21 @@ export default function AddTransaction() {
                             <input
                               type="text"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
-                              value={produk.kategori}
+                              value={produk.merk_part}
                               onChange={(e) =>
-                                handleChange(index, "kode", e.target.value)
+                                handleChange(index, "merk_part", e.target.value)
+                              }
+                            />
+                          </div>
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                            <input
+                              type="text"
+                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              value={produk.satuan_part}
+                              onChange={(e) =>
+                                handleChange(index, "satuan_part", e.target.value)
                               }
                             />
                           </div>
@@ -161,33 +277,9 @@ export default function AddTransaction() {
                             <input
                               type="number"
                               className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
-                              value={produk.harga}
+                              value={produk.harga_part}
                               onChange={(e) =>
-                                handleChange(index, "harga", e.target.value)
-                              }
-                            />
-                          </div>
-                        </td>
-                        <td className="px-4 py-2">
-                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
-                            <input
-                              type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
-                              value={produk.satuan}
-                              onChange={(e) =>
-                                handleChange(index, "satuan", e.target.value)
-                              }
-                            />
-                          </div>
-                        </td>
-                        <td className="px-4 py-2">
-                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
-                            <input
-                              type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
-                              value={produk.merk}
-                              onChange={(e) =>
-                                handleChange(index, "merk", e.target.value)
+                                handleChange(index, "harga_part", e.target.value)
                               }
                             />
                           </div>
@@ -206,17 +298,19 @@ export default function AddTransaction() {
                     <tr className="text-gray-400">
                       <td className="px-4 py-2">
                         <button
-                          onClick={handleTambahVendor}
+                          onClick={handleTambahProduk}
                           className="text-[#858D9D] font-medium underline hover:text-[#6D7588]"
                         >
                           + Tambah Produk
                         </button>
                       </td>
-                      <td colSpan={7}></td>
+                      <td colSpan={6}></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+
+              
             </div>
 
             {/* Batal dan Tambah */}
@@ -227,8 +321,10 @@ export default function AddTransaction() {
               >
                 Batal
               </button>
-              {/* SILAHKAN DIBUAT SENDIRI PAL BUAT TAMBAHNYA */}
-              <button className="bg-[#1366D9] py-1 px-2 rounded text-white text-sm hover:bg-[#0F56BB] transition-colors duration-200">
+              <button
+                onClick={handleSaveVendor}
+                className="bg-[#1366D9] py-1 px-2 rounded text-white text-sm hover:bg-[#0F56BB] transition-colors duration-200"
+              >
                 Tambah Vendor
               </button>
             </div>
@@ -236,5 +332,5 @@ export default function AddTransaction() {
         </section>
       </main>
     </div>
-  );
+  )
 }

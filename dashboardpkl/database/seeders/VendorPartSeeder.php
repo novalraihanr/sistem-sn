@@ -27,7 +27,6 @@ class VendorPartSeeder extends Seeder
                     'harga_part' => rand(10000, 1000000),
                     'merk_part' => fake()->company(),
                     'satuan_part' => fake()->randomElement(['Pcs', 'Unit', 'Box']),
-                    'createdby' => $users->random()->name,
                 ]);
             }
         }

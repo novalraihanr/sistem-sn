@@ -10,16 +10,21 @@ export default function DetailVendor() {
   const params = useParams();
 
   const [isEditMode, setIsEditMode] = useState(false);
+  const [formFields, setFormFields] = useState({});
+  const [produkList, setProdukList] = useState([]);
   const [originalFormFields, setOriginalFormFields] = useState({});
   const [originalProdukList, setOriginalProdukList] = useState([]);
 
   const fetchData = async () => {
     try {
-      const resParts = await APIEndpoint.get(`/api/vendor/${params.id}/parts`);
+      const [resParts, resVendor] = await Promise.all([
+        APIEndpoint.get(`/api/vendor-part/${params.id}/parts`),
+        APIEndpoint.get(`/api/vendor/${params.id}`),
+      ]);
       setProdukList(resParts.data);
-      const resVendor = await APIEndpoint.get(`/api/vendor/${params.id}`);
       setFormFields(resVendor.data);
-      console.log(resParts.data);
+      setOriginalProdukList(JSON.parse(JSON.stringify(resParts.data)));
+      setOriginalFormFields(JSON.parse(JSON.stringify(resVendor.data)));
     } catch (error) {
       console.error("Gagal mengambil data:", error);
     }
@@ -29,71 +34,36 @@ export default function DetailVendor() {
     fetchData();
   }, []);
 
-
-  const [produkList, setProdukList] = useState([]);
-  const [formFields, setFormFields] = useState({});
-
-  // TODO: Delete Later
-  // const [produkList, setProdukList] = useState([
-  //   {
-  //     nama: "Baut",
-  //     unit: "Mobil",
-  //     harga: 5000,
-  //     satuan: "PAK",
-  //     jumlah: 10,
-  //     merk: "Alderon",
-  //   },
-  //   {
-  //     nama: "Oli",
-  //     unit: "Mobil",
-  //     harga: 64600,
-  //     satuan: "PCS",
-  //     jumlah: 1,
-  //     merk: "Alderon",
-  //   },
-  // ]);
-  //
-  // const [formFields, setFormFields] = useState({
-  //   nama_vendor: "MAJU MOTOR 1",
-  //   kode: "MM1",
-  //   alamat: "-",
-  //   nomor: "0341458121",
-  // });
-
   const handleFieldChange = (key, value) => {
     setFormFields((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleProdukChange = (index, field, value) => {
-    const updatedList = produkList.map((item, i) => {
-      if (i === index) {
-        const updatedItem = { ...item };
-        if (updatedItem.pivot) {
-          if (field === "nama_part") {
-            updatedItem.nama_part = value;
-          } else {
-            updatedItem.pivot = { ...updatedItem.pivot, [field]: value };
-          }
-        } else {
-          updatedItem[field] = value;
-        }
-        return updatedItem;
-      }
-      return item;
-    });
+    const updatedList = JSON.parse(JSON.stringify(produkList));
+    const fieldParts = field.split('.');
+    let current = updatedList[index];
+    for (let i = 0; i < fieldParts.length - 1; i++) {
+      current = current[fieldParts[i]];
+    }
+    current[fieldParts[fieldParts.length - 1]] = value;
     setProdukList(updatedList);
   };
 
   const handleAddProduk = () => {
     setProdukList([
       ...produkList,
-      { nama_part: "", merk_part: "", harga_part: 0 },
+      { 
+        nama_part: "", 
+        merk_part: "", 
+        harga_part: 0, 
+        kategori_part: { nama_kategori: "" }, 
+        id_part: "", 
+        satuan_part: "" 
+      },
     ]);
   };
 
   const handleEditClick = () => {
-    setOriginalFormFields(formFields);
-    setOriginalProdukList(produkList);
     setIsEditMode(true);
   };
 
@@ -118,66 +88,127 @@ export default function DetailVendor() {
     }
   };
 
+  // --- Save Logic ---
+  const updateVendorDetails = async () => {
+    const vendorDetailsChanged =
+      JSON.stringify(formFields) !== JSON.stringify(originalFormFields);
+    if (vendorDetailsChanged) {
+      await APIEndpoint.put(`/api/vendor/${params.id}`, formFields);
+    }
+  };
+
+  const deleteRemovedParts = async () => {
+    const deletedParts = originalProdukList.filter(
+      (op) => !produkList.some((p) => p.id_part === op.id_part)
+    );
+    for (const part of deletedParts) {
+      if (part.id_part) { // Ensure we have an id to delete
+        await APIEndpoint.delete(`/api/vendor-part/${params.id}/${part.id_part}`);
+      }
+    }
+  };
+
+  const updateExistingPart = async (produk, originalProduk) => {
+    const pivotFieldsToUpdate = {};
+    if (produk.pivot.harga_part !== originalProduk.pivot.harga_part) {
+      pivotFieldsToUpdate.harga_part = produk.pivot.harga_part;
+    }
+    if (produk.pivot.merk_part !== originalProduk.pivot.merk_part) {
+      pivotFieldsToUpdate.merk_part = produk.pivot.merk_part;
+    }
+    if (produk.pivot.satuan_part !== originalProduk.pivot.satuan_part) {
+      pivotFieldsToUpdate.satuan_part = produk.pivot.satuan_part;
+    }
+
+    if (Object.keys(pivotFieldsToUpdate).length > 0) {
+      await APIEndpoint.put(
+        `/api/vendor-part/changeharga/${params.id}/${produk.id_part}`,
+        pivotFieldsToUpdate
+      );
+    }
+
+    const partFieldsToUpdate = {};
+    if (produk.nama_part !== originalProduk.nama_part) {
+      partFieldsToUpdate.nama_part = produk.nama_part;
+    }
+    if (
+      produk.kategori_part.nama_kategori !==
+      originalProduk.kategori_part.nama_kategori
+    ) {
+      const kategoriRes = await APIEndpoint.post(
+        "/api/kategori-part/first-or-create",
+        {
+          nama_kategori: produk.kategori_part.nama_kategori,
+        }
+      );
+      partFieldsToUpdate.id_kategori_part = kategoriRes.data.id_kategori_part;
+    }
+
+    if (Object.keys(partFieldsToUpdate).length > 0) {
+      await APIEndpoint.put(
+        `/api/part/${originalProduk.id_part}`,
+        partFieldsToUpdate
+      );
+    }
+  };
+
+  const addNewPart = async (produk) => {
+    const kategoriRes = await APIEndpoint.post(
+      "/api/kategori-part/first-or-create",
+      {
+        nama_kategori: produk.kategori_part.nama_kategori,
+      }
+    );
+    const idKategoriPart = kategoriRes.data.id_kategori_part;
+
+    const newPart = await APIEndpoint.post("/api/part", {
+      nama_part: produk.nama_part,
+      id_kategori_part: idKategoriPart,
+      id_part: produk.id_part,
+    });
+
+    await APIEndpoint.post(`/api/vendor/${params.id}/parts`, {
+      id_part: newPart.data.id_part,
+      harga_part: produk.harga_part,
+      merk_part: produk.merk_part,
+      satuan_part: produk.satuan_part,
+    });
+  };
+
+  const saveOrUpdateParts = async () => {
+    for (const produk of produkList) {
+      const originalProduk = originalProdukList.find(
+        (p) => p.id_part === produk.id_part
+      );
+      if (originalProduk) {
+        await updateExistingPart(produk, originalProduk);
+      } else {
+        await addNewPart(produk);
+      }
+    }
+  };
+
+  const updateProductList = async () => {
+    const productListChanged =
+      JSON.stringify(produkList) !== JSON.stringify(originalProdukList);
+
+    if (!productListChanged) return;
+
+    await deleteRemovedParts();
+    await saveOrUpdateParts();
+  };
+
   const handleSave = async () => {
     try {
-      const vendorDetailsChanged =
-        JSON.stringify(formFields) !== JSON.stringify(originalFormFields);
-      const productListChanged =
-        JSON.stringify(produkList) !== JSON.stringify(originalProdukList);
-
-      if (vendorDetailsChanged) {
-        await APIEndpoint.put(`/api/vendor/${params.id}`, formFields);
-      }
-
-      if (productListChanged) {
-        // Handle deleted parts
-        const deletedParts = originalProdukList.filter(
-          (op) => !produkList.some((p) => p.id_part === op.id_part)
-        );
-        for (const part of deletedParts) {
-          await APIEndpoint.delete(`/api/vendor-part/${params.id}/${part.id_part}`);
-        }
-
-        // Handle added or updated parts
-        for (const produk of produkList) {
-          if (produk.pivot) {
-            // Existing part, check for changes and update if necessary
-            const originalProduk = originalProdukList.find(
-              (p) => p.id_part === produk.id_part
-            );
-            if (JSON.stringify(produk) !== JSON.stringify(originalProduk)) {
-              await APIEndpoint.put(`/api/vendor-part/${params.id}/${produk.id_part}`, {
-                harga_part: produk.pivot.harga_part,
-                merk_part: produk.pivot.merk_part,
-              });
-            }
-          } else {
-            // New part, create it and then associate with vendor
-            const newPart = await APIEndpoint.post("/api/parts", {
-              nama_part: produk.nama_part,
-            });
-            await APIEndpoint.post(`/api/vendor/${params.id}/parts`, {
-              id_part: newPart.data.id_part,
-              harga_part: produk.harga_part,
-              merk_part: produk.merk_part,
-            });
-          }
-        }
-      }
-
+      await updateVendorDetails();
+      await updateProductList();
       setIsEditMode(false);
-      if (vendorDetailsChanged || productListChanged) {
-        fetchData(); // Refetch data only if something changed
-      }
+      fetchData(); // Refetch data to get the latest state
     } catch (error) {
       console.error("Gagal menyimpan data:", error);
     }
   };
-
-  // const totalHarga = produkList.reduce(
-  //   (total, produk) => total + produk.harga * produk.jumlah,
-  //   0
-  // );
+  // --- End Save Logic ---
 
   return (
     <div className="bg-[#F0F1F3] min-h-screen">
@@ -229,7 +260,6 @@ export default function DetailVendor() {
               <h3 className="font-bold text-[#48505E] mb-5">
                 Detail Vendor
               </h3>
-              {/* INI KURANG KOLOM KODE VENDOR PAL */}
               <div className="grid gap-4 text-sm text-[#383E49]">
                 {Object.entries(formFields)
                   .filter(([key]) => !['id_vendor', 'created_at', 'updated_at', 'createdby', 'updatedby'].includes(key))
@@ -238,7 +268,7 @@ export default function DetailVendor() {
                       <p className="w-40 text-gray-500 capitalize pt-1">
                         {key
                           .replace(/_/g, " ")
-                          .replace(/\b\w/g, (c) => c.toUpperCase())} 
+                          .replace(/\b\w/g, (c) => c.toUpperCase())}
                       </p>
                       {key.includes("alamat") ? (
                         <textarea
@@ -277,8 +307,8 @@ export default function DetailVendor() {
                   <thead className="bg-[#F9FAFB] text-gray-500">
                     <tr>
                       <th className="px-4 py-2 w-[200px]">Produk</th>
-                      <th className="px-4 py-2">Kode</th>
                       <th className="px-4 py-2">Kategori</th>
+                      <th className="px-4 py-2">Kode</th>
                       <th className="px-4 py-2">Harga Produk</th>
                       <th className="px-4 py-2">Satuan</th>
                       <th className="px-4 py-2">Merk Produk</th>
@@ -287,94 +317,75 @@ export default function DetailVendor() {
                   </thead>
 
                   <tbody>
-                    {/* TODO: Delete Later */}
-                    {/* {produkList.map((item, index) => ( */}
-                    {/*   <tr */}
-                    {/*     key={index} */}
-                    {/*     className="border-b border-gray-200 text-[#6B7280]" */}
-                    {/*   > */}
-                    {/*     {["nama", "unit", "harga", "satuan", "merk"].map( */}
-                    {/*       (field) => ( */}
-                    {/*         <td key={field} className="px-4 py-2"> */}
-                    {/*           {field === "total" ? ( */}
-                    {/*             (item.harga * item.jumlah).toLocaleString( */}
-                    {/*               "id-ID" */}
-                    {/*             ) */}
-                    {/*           ) : isEditMode ? ( */}
-                    {/*             <input */}
-                    {/*               value={item[field] || ""} */}
-                    {/*               onChange={(e) => */}
-                    {/*                 handleProdukChange( */}
-                    {/*                   index, */}
-                    {/*                   field, */}
-                    {/*                   field === "harga" || field === "jumlah" */}
-                    {/*                     ? parseInt(e.target.value || 0) */}
-                    {/*                     : e.target.value */}
-                    {/*                 ) */}
-                    {/*               } */}
-                    {/*               className="border rounded px-1 py-0.5 w-full" */}
-                    {/*             /> */}
-                    {/*           ) : field === "harga" ? ( */}
-                    {/*             `Rp ${item[field].toLocaleString("id-ID")}` */}
-                    {/*           ) : ( */}
-                    {/*             item[field] */}
-                    {/*           )} */}
-                    {/*         </td> */}
-                    {/*       ) */}
-                    {/*     )} */}
-                    {/*     {isEditMode && ( */}
-                    {/*       <td className="px-4 py-2"> */}
-                    {/*         <button */}
-                    {/*           onClick={() => handleDeleteProduk(index)} */}
-                    {/*           className="text-red-500 hover:text-red-700 text-xs" */}
-                    {/*         > */}
-                    {/*           Hapus */}
-                    {/*         </button> */}
-                    {/*       </td> */}
-                    {/*     )} */}
-                    {/*   </tr> */}
-                    {/* ))} */}
-
                     {produkList.map((item, index) => (
-                      // TAMBAH KOLOM KATEGORI SAMA KODE PAL
                       <tr key={index} className="border-b border-gray-200 text-[#6B7280]">
-                        {["nama_part", "harga_part", "merk_part"].map((field) => (
-                          <td key={field} className="px-4 py-2">
-                            {isEditMode ? (
-                              <input
-                                value={
-                                  field === "nama_part"
-                                    ? item.nama_part ?? ""
-                                    : (item.pivot
-                                      ? item.pivot[field]
-                                      : item[field]) ?? ""
-                                }
-                                onChange={(e) =>
-                                  handleProdukChange(
-                                    index,
-                                    field,
-                                    field === "harga_part"
-                                      ? parseInt(e.target.value || 0)
-                                      : e.target.value
-                                  )
-                                }
-                                className="border rounded px-1 py-0.5 w-full"
-                              />
-                            ) : field === "harga_part" ? (
-                              <div>
-                                {item.pivot?.harga_sebelumnya_part &&
+                        <td className="px-4 py-2">
+                          {isEditMode ? (
+                            <input
+                              value={item.nama_part ?? ""}
+                              onChange={(e) =>
+                                handleProdukChange(index, "nama_part", e.target.value)
+                              }
+                              className="border rounded px-1 py-0.5 w-full"
+                            />
+                          ) : (
+                            item.nama_part
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          {isEditMode ? (
+                            <input
+                              value={item.kategori_part?.nama_kategori ?? ""}
+                              onChange={(e) =>
+                                handleProdukChange(index, "kategori_part.nama_kategori", e.target.value)
+                              }
+                              className="border rounded px-1 py-0.5 w-full"
+                            />
+                          ) : (
+                            item.kategori_part?.nama_kategori
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          {isEditMode ? (
+                            <input
+                              value={item.id_part ?? ""}
+                              onChange={(e) =>
+                                handleProdukChange(index, "id_part", e.target.value)
+                              }
+                              readOnly={!!item.pivot}
+                              className={`border rounded px-1 py-0.5 w-full ${!!item.pivot ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                            />
+                          ) : (
+                            item.id_part
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          {isEditMode ? (
+                            <input
+                              value={item.pivot?.harga_part ?? item.harga_part ?? ""}
+                              onChange={(e) =>
+                                handleProdukChange(
+                                  index,
+                                  item.pivot ? "pivot.harga_part" : "harga_part",
+                                  parseInt(e.target.value || 0)
+                                )
+                              }
+                              className="border rounded px-1 py-0.5 w-full"
+                            />
+                          ) : (
+                            <div>
+                              {item.pivot?.harga_sebelumnya_part &&
                                 item.pivot.harga_part !==
-                                  item.pivot.harga_sebelumnya_part && (
+                                item.pivot.harga_sebelumnya_part && (
                                   <span
-                                    className={`text-xs ${
-                                      item.pivot.harga_part <
+                                    className={`text-xs ${item.pivot.harga_part <
                                       item.pivot.harga_sebelumnya_part
-                                        ? "text-green-600"
-                                        : "text-red-600"
-                                    }`}
+                                      ? "text-green-600"
+                                      : "text-red-600"
+                                      }`}
                                   >
                                     {item.pivot.harga_part <
-                                    item.pivot.harga_sebelumnya_part
+                                      item.pivot.harga_sebelumnya_part
                                       ? "▼"
                                       : "▲"}{" "}
                                     {new Intl.NumberFormat("id-ID", {
@@ -383,24 +394,45 @@ export default function DetailVendor() {
                                     }).format(
                                       Math.abs(
                                         item.pivot.harga_part -
-                                          item.pivot.harga_sebelumnya_part
+                                        item.pivot.harga_sebelumnya_part
                                       )
                                     )}
                                   </span>
                                 )}
-                                <div>
-                                  {`Rp ${item.pivot?.[field]?.toLocaleString(
-                                    "id-ID"
-                                  )}`}
-                                </div>
+                              <div>
+                                {`Rp ${item.pivot?.harga_part?.toLocaleString(
+                                  "id-ID"
+                                )}`}
                               </div>
-                            ) : field === "nama_part" ? (
-                              item.nama_part
-                            ) : (
-                              item.pivot?.[field]
-                            )}
-                          </td>
-                        ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          {isEditMode ? (
+                            <input
+                              value={item.pivot?.satuan_part ?? item.satuan_part ?? ""}
+                              onChange={(e) =>
+                                handleProdukChange(index, item.pivot ? "pivot.satuan_part" : "satuan_part", e.target.value)
+                              }
+                              className="border rounded px-1 py-0.5 w-full"
+                            />
+                          ) : (
+                            item.pivot?.satuan_part
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          {isEditMode ? (
+                            <input
+                              value={item.pivot?.merk_part ?? item.merk_part ?? ""}
+                              onChange={(e) =>
+                                handleProdukChange(index, item.pivot ? "pivot.merk_part" : "merk_part", e.target.value)
+                              }
+                              className="border rounded px-1 py-0.5 w-full"
+                            />
+                          ) : (
+                            item.pivot?.merk_part
+                          )}
+                        </td>
                         {isEditMode && (
                           <td className="px-4 py-2">
                             <button

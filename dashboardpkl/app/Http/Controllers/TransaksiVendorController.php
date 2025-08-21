@@ -60,6 +60,7 @@ class TransaksiVendorController extends Controller
             $transaksiVendor = TransaksiVendor::create([
                 'id_transaksi' => $transaksi->id_transaksi,
                 'id_vendorpart' => $vendorPart->id_vendorpart,
+                'harga_part_saat_ini' => $vendorPart->harga_part,
                 'jumlah' => $validated['jumlah'],
                 'total_harga' => $validated['total_harga'],
                 'createdby' => auth()->id(),
@@ -134,7 +135,7 @@ class TransaksiVendorController extends Controller
         $validated = $request->validate([
             'vendor_id' => 'required|integer|exists:vendor,id_vendor',
             'items' => 'required|array|min:1',
-            'items.*.part_id' => 'required|integer|exists:part,id_part',
+            'items.*.part_id' => 'required|string|exists:part,id_part',
             'items.*.jumlah' => 'required|integer|min:1',
             'items.*.total_harga' => 'required|numeric|min:0',
             'items.*.merk_part' => 'required|string|max:255',
@@ -164,8 +165,6 @@ class TransaksiVendorController extends Controller
                     [
                         'merk_part' => $item['merk_part'],
                         'harga_part' => $item['harga_part'],
-                        'createdby' => $userId,
-                        'updatedby' => $userId,
                     ]
                 );
 
@@ -173,9 +172,9 @@ class TransaksiVendorController extends Controller
                 TransaksiVendor::create([
                     'id_transaksi' => $transaksi->id_transaksi,
                     'id_vendorpart' => $vendorPart->id_vendorpart,
+                    'harga_part_saat_ini' => $item['harga_part'],
                     'jumlah' => $item['jumlah'],
                     'total_harga' => $item['total_harga'],
-                    'createdby' => $userId,
                 ]);
             }
             
@@ -200,7 +199,7 @@ class TransaksiVendorController extends Controller
         try {
             $transaksi = Transaksi::with([
                 'transaksivendor.vendorPart.vendor',
-                'transaksivendor.vendorPart.part',
+                'transaksivendor.vendorPart.part.kategoriPart',
             ])->findOrFail($id);
 
             return response()->json($transaksi);

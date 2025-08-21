@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id('id_transaksivendor');
             $table->unsignedBigInteger('id_transaksi');
             $table->unsignedBigInteger('id_vendorpart');
+            $table->double('harga_part_saat_ini')->nullable(true);
             $table->integer('jumlah');
             $table->double('total_harga');
             $table->timestamps();

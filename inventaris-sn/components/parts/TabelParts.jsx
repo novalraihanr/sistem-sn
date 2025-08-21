@@ -163,7 +163,7 @@ export default function TabelParts() {
                 >
                   {kategori.nama_kategori}
                 </td>
-                <td className="py-2 px-4">{kategori.parts.length}</td>
+                <td className="py-2 px-4">{kategori.parts?.length || 0}</td>
                 <td className="py-2 px-4 flex gap-x-2">
                   <button
                     className="flex gap-x-2 border border-[#D0D3D9] px-3 py-1 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100"

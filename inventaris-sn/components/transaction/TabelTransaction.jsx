@@ -35,7 +35,7 @@ export default function TabelTransaction() {
             acc[transId] = {
               id_transaksi: transId,
               vendor: item.vendor_part?.vendor?.nama_vendor || "N/A",
-              kode: `TRX-${transId}`,
+              kode: transId,
               produk: [],
               total_harga: item.transaksi?.total || 0,
               timestamp: createdAt

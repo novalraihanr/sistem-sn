@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     Route::apiResource('vendor', VendorController::class);
+    Route::get('vendor/search/{name}', [VendorController::class, 'searchByName']);
     Route::get('part/best-prices', [PartController::class, 'getBestPrices']);
     Route::apiResource('part', PartController::class);
     Route::apiResource('unit', UnitController::class);
@@ -36,6 +37,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('vendor-part/changeharga/{vendorId}/{partId}', [VendorPartController::class, 'update']);
     Route::post('vendor-part/{vendorId}/part', [VendorPartController::class, 'addPartToVendor']);
     Route::delete('vendor-part/{vendorId}/{partId}', [VendorPartController::class, 'destroy']);
+    Route::get('vendor-part/{id}/parts', [VendorPartController::class, 'getVendorParts']);
+    Route::get('vendor/{id}/parts/search/{partName}', [VendorPartController::class, 'searchVendorParts']);
 
     // Transaksi Vendor Routes
     Route::apiResource('transaksi-vendor', TransaksiVendorController::class);
@@ -43,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('transaksi-vendor/{id}', [TransaksiVendorController::class, 'show']);
 
     Route::get('vendor/{id}/parts', [VendorController::class, 'getVendorParts']);
+    Route::post('vendor/{id}/parts', [VendorPartController::class, 'addPartToVendor']);
     Route::get('part/{id}/vendors', [VendorPartController::class, 'getPartVendors']);
 
     // Units Route
@@ -64,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('stok-out', StokOutController::class);
 
     Route::get('kategori-part/{kategoriPart}/parts', [\App\Http\Controllers\KategoriPartController::class, 'getParts']);
+    Route::post('kategori-part/first-or-create', [\App\Http\Controllers\KategoriPartController::class, 'firstOrCreate']);
     Route::apiResource('kategori-part', \App\Http\Controllers\KategoriPartController::class);
 
     Route::apiResource('users', UsersController::class);

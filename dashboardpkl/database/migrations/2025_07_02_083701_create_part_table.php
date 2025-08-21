@@ -12,10 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('part', function (Blueprint $table) {
-            $table->id('id_part');
+            $table->string('id_part')->primary();
             $table->unsignedBigInteger('id_kategori_part');
             $table->string('nama_part');
-            $table->string('updatedby')->nullable();
             $table->timestamps();
 
             $table->foreign('id_kategori_part')->references('id_kategori_part')->on('kategori_part')->onDelete('cascade');

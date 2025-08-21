@@ -282,54 +282,44 @@ export default function DetailTransaction() {
                   </thead>
 
                   <tbody>
-                    {/* TAMBAHIN DATA BUAT KOLOM KODE DAN KATEGORI */}
                     {produkList.map((item, index) => (
                       <tr
                         key={item.id_transaksi_vendor}
                         className="border-b border-gray-200 text-[#6B7280]"
                       >
+                        {/* Nama Part */}
                         <td className="px-4 py-2">
-                          {isEditMode && item.isNew ? (
-                            <input
-                              type="text"
-                              value={item.vendor_part.part.nama_part}
-                              onChange={(e) =>
-                                handleProdukChange(index, "nama_part", e.target.value)
-                              }
-                              className="border rounded px-1 py-0.5 w-full"
-                            />
-                          ) : (
-                            item.vendor_part?.part?.nama_part || "N/A"
-                          )}
+                          {item.vendor_part?.part?.nama_part || "N/A"}
                         </td>
+                        {/* Kode */}
                         <td className="px-4 py-2">
-                          {isEditMode && item.isNew ? (
-                            <input
-                              type="text"
-                              value={item.vendor_part.merk_part}
-                              onChange={(e) =>
-                                handleProdukChange(index, "merk_part", e.target.value)
-                              }
-                              className="border rounded px-1 py-0.5 w-full"
-                            />
-                          ) : (
-                            item.vendor_part?.merk_part || "N/A"
-                          )}
+                          {item.vendor_part?.part?.id_part || "N/A"}
                         </td>
+                        {/* Kategori */}
                         <td className="px-4 py-2">
-                          {isEditMode && item.isNew ? (
-                            <input
-                              type="number"
-                              value={item.vendor_part.harga_part}
-                              onChange={(e) =>
-                                handleProdukChange(index, "harga_part", e.target.value)
-                              }
-                              className="border rounded px-1 py-0.5 w-full"
-                            />
-                          ) : (
-                            `Rp ${item.vendor_part?.harga_part?.toLocaleString("id-ID")}`
-                          )}
+                          {item.vendor_part?.part?.kategori_part?.nama_kategori || "N/A"}
                         </td>
+                        {/* Merk */}
+                        <td className="px-4 py-2">
+                          {item.vendor_part?.merk_part || "N/A"}
+                        </td>
+                        {/* Harga */}
+                        <td className="px-4 py-2">
+                          {(() => {
+                            const transaksivendor_updated_at = new Date(item.updated_at);
+                            const vendorpart_updated_at = new Date(item.vendor_part.updated_at);
+                            let harga;
+
+                            if (transaksivendor_updated_at <= vendorpart_updated_at) {
+                              harga = item.harga_part_saat_ini;
+                            } else {
+                              harga = item.vendor_part.harga_part;
+                            }
+
+                            return `Rp ${harga?.toLocaleString("id-ID")}`;
+                          })()}
+                        </td>
+                        {/* Jumlah */}
                         <td className="px-4 py-2">
                           {isEditMode ? (
                             <input
@@ -344,12 +334,9 @@ export default function DetailTransaction() {
                             item.jumlah
                           )}
                         </td>
+                        {/* Total Harga */}
                         <td className="px-4 py-2">
-                          {isEditMode ? (
-                            `Rp ${(item.total_harga).toLocaleString("id-ID")}`
-                          ) : (
-                            `Rp ${item.total_harga.toLocaleString("id-ID")}`
-                          )}
+                          {`Rp ${item.total_harga.toLocaleString("id-ID")}`}
                         </td>
                         {isEditMode && (
                           <td className="px-4 py-2">

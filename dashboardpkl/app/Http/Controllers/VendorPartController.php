@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Part;
 use App\Models\Vendor;
+use App\Models\KategoriPart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -13,8 +14,27 @@ class VendorPartController extends Controller
 {
     public function getVendorParts(int $id)
     {
+        $vendor = Vendor::with(['parts' => function($query) {
+            $query->select('part.id_part', 'part.nama_part', 'part.id_kategori_part')->withPivot('harga_part', 'harga_sebelumnya_part', 'merk_part', 'satuan_part');
+        }])->findOrFail($id);
+
+        $parts = $vendor->parts->map(function ($part) {
+            $part->load('kategoriPart');
+            return $part;
+        });
+
+        return response()->json($parts);
+    }
+
+    public function searchVendorParts(int $id, string $partName)
+    {
         $vendor = Vendor::findOrFail($id);
-        $parts = $vendor->parts()->withPivot('harga_part', 'harga_sebelumnya_part', 'merk_part', 'satuan_part')->get();
+
+        $parts = $vendor->parts()
+            ->where('part.nama_part', 'like', '%' . $partName . '%')
+            ->withPivot('harga_part', 'merk_part', 'satuan_part')
+            ->with('kategoriPart')
+            ->get();
 
         return response()->json($parts);
     }
@@ -80,8 +100,6 @@ class VendorPartController extends Controller
                 'harga_sebelumnya_part' => $validated['harga_sebelumnya_part'] ?? null,
                 'merk_part' => $validated['merk_part'],
                 'satuan_part' => $validated['satuan_part'],
-                'createdby' => $userId,
-                'updatedby' => $userId,
             ];
 
             // Attach the part to the vendor with the pivot data
@@ -110,12 +128,16 @@ class VendorPartController extends Controller
     /**
      * Update pivot table data for a vendor-part relationship.
      */
-    public function update(Request $request, int $vendorId, int $partId)
+    public function update(Request $request, int $vendorId, string $partId)
     {
         $validated = $request->validate([
+            'nama_part' => 'sometimes|string|max:255',
+            'kategori_name' => 'sometimes|string|max:255',
+            'id_part' => 'sometimes|string|max:255',
             'harga_part' => 'sometimes|numeric|min:0',
             'merk_part' => 'sometimes|string|max:255',
             'satuan_part' => 'sometimes|string|max:255',
+            'harga_sebelumnya_part' => 'sometimes|numeric|min:0',
         ]);
 
         if (empty($validated)) {
@@ -126,15 +148,27 @@ class VendorPartController extends Controller
             $vendor = Vendor::findOrFail($vendorId);
             $part = Part::findOrFail($partId);
 
+            // Update Part attributes
+            if (isset($validated['nama_part'])) {
+                $part->nama_part = $validated['nama_part'];
+            }
+            if (isset($validated['id_part'])) {
+                $part->id_part = $validated['id_part'];
+            }
+            if (isset($validated['kategori_name'])) {
+                $kategoriPart = KategoriPart::firstOrCreate(['nama_kategori' => $validated['kategori_name']]);
+                $part->id_kategori_part = $kategoriPart->id_kategori_part;
+            }
+            $part->save();
+
             // Find the existing pivot record
             $pivot = $vendor->parts()->where('vendor_part.id_part', $partId)->first()->pivot;
 
-            // Save current harga_part to harga_sebelumnya_part before updating
             $updateData = $validated;
-            if (isset($validated['harga_part'])) {
+
+            if (isset($validated['harga_part']) && $validated['harga_part'] != $pivot->harga_part) {
                 $updateData['harga_sebelumnya_part'] = $pivot->harga_part;
             }
-            $updateData['updatedby'] = auth()->id();
 
             $vendor->parts()->updateExistingPivot($partId, $updateData);
 
@@ -179,7 +213,6 @@ class VendorPartController extends Controller
                 'harga_part' => $validated['harga_part'],
                 'merk_part' => $validated['merk_part'],
                 'satuan_part' => $validated['satuan_part'],
-                'updatedby' => $userId,
             ];
 
             // Check if the relationship already exists
@@ -188,9 +221,6 @@ class VendorPartController extends Controller
             if ($existingPivot) {
                 // If relationship exists, set current harga_part as harga_sebelumnya_part
                 $pivotData['harga_sebelumnya_part'] = $existingPivot->pivot->harga_part;
-            } else {
-                // If new relationship, set createdby
-                $pivotData['createdby'] = $userId;
             }
 
             // Use syncWithoutDetaching to attach or update the part to the vendor with the pivot data
@@ -216,7 +246,7 @@ class VendorPartController extends Controller
     /**
      * Detach a part from a vendor and then delete the part.
      */
-    public function destroy(int $vendorId, int $partId)
+        public function destroy(int $vendorId, string $partId)
     {
         DB::beginTransaction();
         try {
