@@ -148,6 +148,22 @@ export default function TabelStockIn() {
     }
   };
 
+  const handleProductInputBlur = () => {
+    setTimeout(() => {
+      setProductSuggestions([]);
+    }, 100);
+  };
+
+  const handleProductSelect = (product) => {
+    setFormData((prev) => ({
+      ...prev,
+      nama_produk: product.nama_produk,
+      nama_kategori: product.kategori_inv?.nama_kategori || "",
+      produk_satuan: product.produk_satuan || "",
+    }));
+    setProductSuggestions([]); // Clear suggestions after selection
+  };
+
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedYear, setSelectedYear] = useState("all");
   const [availableMonths, setAvailableMonths] = useState([]);
@@ -482,6 +498,7 @@ export default function TabelStockIn() {
                         name={name}
                         value={formData[name]}
                         onChange={handleChange}
+                        onBlur={name === "nama_produk" ? handleProductInputBlur : undefined}
                         placeholder={type !== "date" ? placeholder : undefined}
                         className={`w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-300 ${
                           type === "date" ? "placeholder-transparent" : ""

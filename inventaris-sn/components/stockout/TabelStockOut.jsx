@@ -159,6 +159,23 @@ export default function TabelStockOut() {
     }
   };
 
+  const handleProductInputBlur = () => {
+    setTimeout(() => {
+      setProductSuggestions([]);
+    }, 100);
+  };
+
+  const handleProductSelect = (product) => {
+    setFormData((prev) => ({
+      ...prev,
+      name: product.nama_produk,
+      satuan: product.produk_satuan || "",
+      nama_kategori: product.kategori_inv?.nama_kategori || "",
+      produk_minimum_stok: product.produk_minimum_stok || "",
+    }));
+    setProductSuggestions([]); // Clear suggestions after selection
+  };
+
   // State filter
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedYear, setSelectedYear] = useState("all");
@@ -479,6 +496,7 @@ export default function TabelStockOut() {
                           name={name}
                           value={formData[name]}
                           onChange={handleChange}
+                          onBlur={name === "name" ? handleProductInputBlur : undefined}
                           placeholder={
                             type !== "date" ? placeholder : undefined
                           }
@@ -494,6 +512,7 @@ export default function TabelStockOut() {
                               <option
                                 key={product.id_produk}
                                 value={product.nama_produk}
+                                onClick={() => handleProductSelect(product)}
                               />
                             ))}
                           </datalist>
