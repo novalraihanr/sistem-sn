@@ -51,23 +51,50 @@ export default function AddTransaction() {
     setVendorSuggestions([]);
   };
 
+  const handleVendorInputBlur = () => {
+    setTimeout(() => {
+      setVendorSuggestions([]);
+    }, 100);
+  };
+
   // --- Part Autocomplete ---
   const handlePartSearch = async (index, partName) => {
-    if (!selectedVendor || partName.length < 1) {
+    if (partName.length < 1) {
       const newSuggestions = [...partSuggestions];
       newSuggestions[index] = [];
       setPartSuggestions(newSuggestions);
       return;
     }
+
     try {
-      const res = await APIEndpoint.get(
-        `/api/vendor/${selectedVendor.id_vendor}/parts/search/${partName}`
-      );
+      let suggestions = [];
+      // First, try to get parts associated with the selected vendor
+      if (selectedVendor) {
+        const res = await APIEndpoint.get(
+          `/api/vendor/${selectedVendor.id_vendor}/parts/search/${partName}`
+        );
+        suggestions = res.data;
+      }
+
+      // If no suggestions from vendor-specific parts, or no vendor selected, search general parts
+      if (suggestions.length === 0) {
+        try {
+          const res = await APIEndpoint.get(`/api/part/search/${partName}`);
+          suggestions = res.data;
+        } catch (error) {
+          // It's possible the general search fails or returns nothing, which is fine.
+          console.error("Error searching general parts:", error);
+        }
+      }
+
       const newSuggestions = [...partSuggestions];
-      newSuggestions[index] = res.data;
+      newSuggestions[index] = suggestions;
       setPartSuggestions(newSuggestions);
     } catch (error) {
       console.error("Error searching for parts:", error);
+      const newSuggestions = [...partSuggestions];
+      newSuggestions[index] = [];
+      setPartSuggestions(newSuggestions);
     }
   };
 
@@ -80,21 +107,34 @@ export default function AddTransaction() {
 
   const handlePartSelect = (index, part) => {
     const newList = [...produkList];
+    const isVendorPart = part.pivot;
+
     newList[index] = {
       ...newList[index],
       part_name: part.nama_part,
       kategori_name: part.kategori_part?.nama_kategori || "",
       kode_part: part.id_part,
-      merk_part: part.pivot.merk_part,
-      satuan_part: part.pivot.satuan_part,
-      harga_part: part.pivot.harga_part,
-      total_harga: newList[index].jumlah * part.pivot.harga_part,
+      merk_part: isVendorPart ? part.pivot.merk_part : "",
+      satuan_part: isVendorPart ? part.pivot.satuan_part : "",
+      harga_part: isVendorPart ? part.pivot.harga_part : 0,
+      total_harga: isVendorPart
+        ? newList[index].jumlah * part.pivot.harga_part
+        : 0,
       originalData: part, // Store original data for comparison on save
     };
     setProdukList(newList);
     const newSuggestions = [...partSuggestions];
     newSuggestions[index] = [];
     setPartSuggestions(newSuggestions);
+  };
+
+  const handlePartInputBlur = (index) => {
+    // A small delay to allow click on suggestion to register before blur clears it
+    setTimeout(() => {
+      const newSuggestions = [...partSuggestions];
+      newSuggestions[index] = [];
+      setPartSuggestions(newSuggestions);
+    }, 100);
   };
 
   // --- General Table Handlers ---
@@ -370,6 +410,7 @@ export default function AddTransaction() {
                       placeholder="Masukkan nama vendor"
                       value={vendorName}
                       onChange={handleVendorInputChange}
+                      onBlur={handleVendorInputBlur}
                       className="w-full border rounded-md px-2 py-1"
                     />
                     {vendorSuggestions.length > 0 && (
@@ -438,6 +479,7 @@ export default function AddTransaction() {
                               onChange={(e) =>
                                 handlePartInputChange(index, e.target.value)
                               }
+                              onBlur={() => handlePartInputBlur(index)}
                               disabled={!vendorName}
                             />
                           </div>

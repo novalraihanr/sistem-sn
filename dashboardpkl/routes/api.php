@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('vendor', VendorController::class);
     Route::get('vendor/search/{name}', [VendorController::class, 'searchByName']);
     Route::get('part/best-prices', [PartController::class, 'getBestPrices']);
+    Route::get('part/search/{name}', [PartController::class, 'searchByName']);
     Route::apiResource('part', PartController::class);
     Route::apiResource('unit', UnitController::class);
     Route::apiResource('transaksi', TransaksiController::class);

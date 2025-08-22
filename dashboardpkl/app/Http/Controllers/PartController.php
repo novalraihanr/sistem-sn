@@ -116,4 +116,13 @@ class PartController extends Controller
 
         return response()->json($bestPrices);
     }
+
+    public function searchByName($name)
+    {
+        $parts = Part::with('kategoriPart')
+                     ->where('nama_part', 'like', '%' . $name . '%')
+                     ->get();
+
+        return response()->json($parts);
+    }
 }
