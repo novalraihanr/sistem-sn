@@ -138,13 +138,22 @@ export default function TabelStockIn() {
       setShowModal(false);
       resetForm();
       fetchData();
-      window.location.reload();
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Stock In Berhasil Ditambahkan!",
+        icon: "success",
+        confirmButtonText: "OK",
+      }).then(() => {
+        window.location.reload();
+      });
     } catch (error) {
       console.error("Error adding stock in:", error);
-      alert(
-        "Failed to add stock in: " +
-          (error.response?.data?.message || error.message)
-      );
+      Swal.fire({
+        title: "Gagal Menambah Stock In",
+        text: error.response?.data?.message || error.message,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -498,7 +507,11 @@ export default function TabelStockIn() {
                         name={name}
                         value={formData[name]}
                         onChange={handleChange}
-                        onBlur={name === "nama_produk" ? handleProductInputBlur : undefined}
+                        onBlur={
+                          name === "nama_produk"
+                            ? handleProductInputBlur
+                            : undefined
+                        }
                         placeholder={type !== "date" ? placeholder : undefined}
                         className={`w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-300 ${
                           type === "date" ? "placeholder-transparent" : ""

@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import { useRouter } from "next/navigation";
 import { useState, useCallback } from "react";
 import APIEndpoint from "@/app/api/api";
+import Swal from "sweetalert2";
 
 export default function AddTransaction() {
   const router = useRouter();
@@ -207,7 +208,12 @@ export default function AddTransaction() {
         }
       } else {
         if (!vendorName || !vendorContact || !vendorAddress) {
-          alert("Harap lengkapi informasi vendor atau pilih dari sugesti.");
+          Swal.fire({
+            title: "Peringatan",
+            text: "Harap lengkapi informasi vendor.",
+            icon: "warning",
+            confirmButtonText: "OK",
+          });
           setLoading(false);
           return;
         }
@@ -220,7 +226,12 @@ export default function AddTransaction() {
       }
 
       if (produkList.length === 0) {
-        alert("Harap tambahkan setidaknya satu produk.");
+        Swal.fire({
+          title: "Peringatan",
+          text: "Harap tambahkan setidaknya satu produk.",
+          icon: "warning",
+          confirmButtonText: "OK",
+        });
         setLoading(false);
         return;
       }
@@ -261,7 +272,12 @@ export default function AddTransaction() {
         } else {
           // Part baru/manual
           if (!produk.kode_part) {
-            alert("Kode Part harus diisi untuk produk baru.");
+            Swal.fire({
+              title: "Peringatan",
+              text: "Kode Part harus diisi untuk produk baru.",
+              icon: "warning",
+              confirmButtonText: "OK",
+            });
             setLoading(false);
             return;
           }
@@ -354,9 +370,37 @@ export default function AddTransaction() {
       router.push("/transaction");
     } catch (error) {
       console.error("Gagal menyimpan transaksi:", error);
-      alert("Gagal menyimpan transaksi. Silakan coba lagi.");
+      Swal.fire({
+        title: "Gagal!",
+        text: "Gagal menyimpan transaksi. Silakan coba lagi.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     } finally {
-      setLoading(false); // matikan loading setelah selesai
+      setLoading(false);
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Data Transaksi Berhasil Ditambahkan",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+    }
+  };
+
+  const handleArrowNavigation = (e, rowIndex, colIndex) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const next = document.querySelector(
+        `[data-row='${rowIndex}'][data-col='${colIndex + 1}']`
+      );
+      next?.focus();
+    }
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const prev = document.querySelector(
+        `[data-row='${rowIndex}'][data-col='${colIndex - 1}']`
+      );
+      prev?.focus();
     }
   };
 
@@ -455,27 +499,32 @@ export default function AddTransaction() {
                 <table className="min-w-full text-sm text-left text-[#383E49] border-collapse">
                   <thead className="bg-[#F9FAFB] text-gray-500">
                     <tr>
-                      <th className="px-4 py-2 w-[200px]">Nama Part</th>
-                      <th className="px-4 py-2">Kategori</th>
-                      <th className="px-4 py-2">Kode</th>
-                      <th className="px-4 py-2">Merk</th>
-                      <th className="px-4 py-2">Satuan</th>
-                      <th className="px-4 py-2">Harga</th>
-                      <th className="px-4 py-2">Jumlah</th>
-                      <th className="px-4 py-2">Total</th>
-                      <th className="px-4 py-2">Aksi</th>
+                      <th className="px-4 py-2 min-w-[180px]">Nama Part</th>
+                      <th className="px-4 py-2 min-w-[140px]">Kategori</th>
+                      <th className="px-4 py-2 min-w-[120px]">Kode</th>
+                      <th className="px-4 py-2 min-w-[140px]">Merk</th>
+                      <th className="px-4 py-2 min-w-[120px]">Satuan</th>
+                      <th className="px-4 py-2 min-w-[120px]">Harga</th>
+                      <th className="px-4 py-2 min-w-[100px]">Jumlah</th>
+                      <th className="px-4 py-2 min-w-[140px]">Total</th>
+                      <th className="px-4 py-2 min-w-[100px]">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {produkList.map((produk, index) => (
                       <tr key={index} className="bg-white">
-                        {/* Part Name with Autocomplete */}
+                        {/* Nama Part */}
                         <td className="px-4 py-2 relative">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[180px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.part_name}
+                              data-row={index}
+                              data-col={0}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 0)
+                              }
                               onChange={(e) =>
                                 handlePartInputChange(index, e.target.value)
                               }
@@ -497,13 +546,19 @@ export default function AddTransaction() {
                             </ul>
                           )}
                         </td>
-                        {/* Other Part Details */}
+
+                        {/* Kategori */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[140px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.kategori_name}
+                              data-row={index}
+                              data-col={1}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 1)
+                              }
                               onChange={(e) =>
                                 handleChange(
                                   index,
@@ -514,36 +569,57 @@ export default function AddTransaction() {
                             />
                           </div>
                         </td>
+
+                        {/* Kode */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[120px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.kode_part}
+                              data-row={index}
+                              data-col={2}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 2)
+                              }
                               onChange={(e) =>
                                 handleChange(index, "kode_part", e.target.value)
                               }
                             />
                           </div>
                         </td>
+
+                        {/* Merk */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[140px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.merk_part}
+                              data-row={index}
+                              data-col={3}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 3)
+                              }
                               onChange={(e) =>
                                 handleChange(index, "merk_part", e.target.value)
                               }
                             />
                           </div>
                         </td>
+
+                        {/* Satuan */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[120px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.satuan_part}
+                              data-row={index}
+                              data-col={4}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 4)
+                              }
                               onChange={(e) =>
                                 handleChange(
                                   index,
@@ -554,12 +630,19 @@ export default function AddTransaction() {
                             />
                           </div>
                         </td>
+
+                        {/* Harga */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="number"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[120px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={String(produk.harga_part)}
+                              data-row={index}
+                              data-col={5}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 5)
+                              }
                               onChange={(e) =>
                                 handleChange(
                                   index,
@@ -570,22 +653,33 @@ export default function AddTransaction() {
                             />
                           </div>
                         </td>
+
+                        {/* Jumlah */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="number"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[100px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={String(produk.jumlah)}
+                              data-row={index}
+                              data-col={6}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 6)
+                              }
                               onChange={(e) =>
                                 handleChange(index, "jumlah", e.target.value)
                               }
                             />
                           </div>
                         </td>
-                        <td className="px-4 py-2">
+
+                        {/* Total */}
+                        <td className="px-4 py-2 min-w-[140px]">
                           Rp {produk.total_harga.toLocaleString("id-ID")}
                         </td>
-                        <td className="px-4 py-2">
+
+                        {/* Aksi */}
+                        <td className="px-4 py-2 min-w-[100px]">
                           <button
                             onClick={() => handleHapusProduk(index)}
                             className="text-red-500 hover:underline text-xs"

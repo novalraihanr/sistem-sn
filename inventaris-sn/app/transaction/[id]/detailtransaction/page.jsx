@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import APIEndpoint from "@/app/api/api";
+import Swal from "sweetalert2";
 
 export default function DetailTransaction() {
   const router = useRouter();
@@ -11,7 +12,6 @@ export default function DetailTransaction() {
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [originalProdukList, setOriginalProdukList] = useState([]);
-
 
   const [produkList, setProdukList] = useState([]);
 
@@ -24,8 +24,6 @@ export default function DetailTransaction() {
       }));
       setProdukList(transaksivendor);
       setOriginalProdukList(transaksivendor);
-
-
     } catch (error) {
       console.error("Gagal mengambil data:", error);
     }
@@ -71,14 +69,27 @@ export default function DetailTransaction() {
     setIsEditMode(false);
   };
 
-
-
   const handleDelete = async () => {
     try {
       await APIEndpoint.delete(`/api/transaksi/${params.id}`);
-      router.push("/transaction");
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Data berhasil dihapus!",
+        icon: "success",
+        confirmButtonText: "OK",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          router.push("/transaction");
+        }
+      });
     } catch (error) {
       console.error("Gagal menghapus data:", error);
+      Swal.fire({
+        title: "Gagal!",
+        text: "Terjadi kesalahan saat menghapus.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -199,9 +210,7 @@ export default function DetailTransaction() {
                     </p>
                     <input
                       type="text"
-                      value={
-                        produkList[0].vendor_part.vendor.nama_vendor || ""
-                      }
+                      value={produkList[0].vendor_part.vendor.nama_vendor || ""}
                       readOnly
                       className="w-[450px] border rounded-md px-2 py-1 bg-gray-100 text-gray-600 cursor-not-allowed"
                     />
@@ -231,9 +240,7 @@ export default function DetailTransaction() {
                     />
                   </div>
                   <div className="flex items-start gap-4 mb-4">
-                    <p className="w-40 text-gray-500 capitalize pt-1">
-                      Alamat
-                    </p>
+                    <p className="w-40 text-gray-500 capitalize pt-1">Alamat</p>
                     <textarea
                       value={
                         produkList[0].vendor_part.vendor.alamat_vendor || ""
@@ -249,9 +256,8 @@ export default function DetailTransaction() {
                     <input
                       type="text"
                       value={
-                        new Date(
-                          produkList[0].created_at
-                        ).toLocaleString() || ""
+                        new Date(produkList[0].created_at).toLocaleString() ||
+                        ""
                       }
                       readOnly
                       className="w-[450px] border rounded-md px-2 py-1 bg-gray-100 text-gray-600 cursor-not-allowed"
@@ -297,7 +303,8 @@ export default function DetailTransaction() {
                         </td>
                         {/* Kategori */}
                         <td className="px-4 py-2">
-                          {item.vendor_part?.part?.kategori_part?.nama_kategori || "N/A"}
+                          {item.vendor_part?.part?.kategori_part
+                            ?.nama_kategori || "N/A"}
                         </td>
                         {/* Merk */}
                         <td className="px-4 py-2">
@@ -306,11 +313,18 @@ export default function DetailTransaction() {
                         {/* Harga */}
                         <td className="px-4 py-2">
                           {(() => {
-                            const transaksivendor_updated_at = new Date(item.updated_at);
-                            const vendorpart_updated_at = new Date(item.vendor_part.updated_at);
+                            const transaksivendor_updated_at = new Date(
+                              item.updated_at
+                            );
+                            const vendorpart_updated_at = new Date(
+                              item.vendor_part.updated_at
+                            );
                             let harga;
 
-                            if (transaksivendor_updated_at <= vendorpart_updated_at) {
+                            if (
+                              transaksivendor_updated_at <=
+                              vendorpart_updated_at
+                            ) {
                               harga = item.harga_part_saat_ini;
                             } else {
                               harga = item.vendor_part.harga_part;
@@ -326,7 +340,11 @@ export default function DetailTransaction() {
                               type="number"
                               value={item.jumlah}
                               onChange={(e) =>
-                                handleProdukChange(index, "jumlah", e.target.value)
+                                handleProdukChange(
+                                  index,
+                                  "jumlah",
+                                  e.target.value
+                                )
                               }
                               className="border rounded px-1 py-0.5 w-full"
                             />
@@ -353,13 +371,19 @@ export default function DetailTransaction() {
                   </tbody>
                   <tfoot className="bg-gray-50">
                     <tr>
-                      <td colSpan="6" className="text-right px-4 py-2 font-bold">Grand Total:</td>
-                      <td className="px-4 py-2 font-bold">{`Rp ${totalHarga.toLocaleString("id-ID")}`}</td>
+                      <td
+                        colSpan="6"
+                        className="text-right px-4 py-2 font-bold"
+                      >
+                        Grand Total:
+                      </td>
+                      <td className="px-4 py-2 font-bold">{`Rp ${totalHarga.toLocaleString(
+                        "id-ID"
+                      )}`}</td>
                       {isEditMode && <td></td>}
                     </tr>
                   </tfoot>
                 </table>
-
               </div>
             </div>
 

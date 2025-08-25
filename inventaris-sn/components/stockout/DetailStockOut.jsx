@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import APIEndpoint from "@/app/api/api";
+import Swal from "sweetalert2";
 
 export default function DetailStockOut({ product, onClose }) {
   const [editedProduct, setEditedProduct] = useState({});
@@ -14,7 +15,9 @@ export default function DetailStockOut({ product, onClose }) {
         setLoading(true);
         setError(null);
         try {
-          const response = await APIEndpoint.get(`api/stok-out/${product.id_stokout}`);
+          const response = await APIEndpoint.get(
+            `api/stok-out/${product.id_stokout}`
+          );
           const fetchedProduct = response.data;
           setEditedProduct({
             ...fetchedProduct,
@@ -60,7 +63,9 @@ export default function DetailStockOut({ product, onClose }) {
         setLoading(true);
         setError(null);
         try {
-          const response = await APIEndpoint.get(`api/stok-out/${product.id_stokout}`);
+          const response = await APIEndpoint.get(
+            `api/stok-out/${product.id_stokout}`
+          );
           const fetchedProduct = response.data;
           setEditedProduct({
             ...fetchedProduct,
@@ -104,15 +109,22 @@ export default function DetailStockOut({ product, onClose }) {
         payload
       );
 
-      alert("Perubahan berhasil disimpan!");
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Perubahan berhasil disimpan!",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
 
       setIsEditing(false);
     } catch (err) {
       console.error(err);
-      alert(
-        "Terjadi kesalahan saat menyimpan: " +
-        (err.response?.data?.message || err.message)
-      );
+      Swal.fire({
+        title: "Gagal!",
+        text: error.response?.data?.message || error.message,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -124,11 +136,22 @@ export default function DetailStockOut({ product, onClose }) {
     try {
       await APIEndpoint.delete(`api/stok-out/${product.id_stokout}`);
 
-      alert("Data berhasil dihapus!");
-      onClose();
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Data berhasil dihapus!",
+        icon: "success",
+        confirmButtonText: "OK",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          onClose();
+        }
+      });
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan saat menghapus: " + (err.response?.data?.message || err.message));
+      alert(
+        "Terjadi kesalahan saat menghapus: " +
+          (err.response?.data?.message || err.message)
+      );
     }
   };
 
@@ -200,39 +223,40 @@ export default function DetailStockOut({ product, onClose }) {
 
       {/* Form Grid */}
       <div className="grid gap-4 text-sm text-[#383E49]">
-        {[{
+        {[
+          {
             label: "Tanggal",
             key: "tanggal",
-            type: "date"
+            type: "date",
           },
           {
             label: "Nama Produk",
-            key: "name"
+            key: "name",
           },
           {
             label: "Kuantitas",
             key: "qty",
-            type: "number"
+            type: "number",
           },
           {
             label: "Spesifikasi",
-            key: "spesifikasi"
+            key: "spesifikasi",
           },
           {
             label: "Satuan",
-            key: "satuan"
+            key: "satuan",
           },
           {
             label: "Nama",
-            key: "nama"
+            key: "nama",
           },
           {
             label: "Divisi",
-            key: "divisi"
+            key: "divisi",
           },
           {
             label: "Keterangan",
-            key: "keterangan"
+            key: "keterangan",
           },
         ].map(({ label, key, type = "text" }) => {
           // Format tanggal ke yyyy-mm-dd

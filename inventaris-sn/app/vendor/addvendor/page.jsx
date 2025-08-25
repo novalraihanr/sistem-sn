@@ -3,7 +3,7 @@
 import Sidebar from "@/components/Sidebar";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
+import Swal from "sweetalert2";
 import APIEndpoint from "@/app/api/api";
 
 export default function AddVendor() {
@@ -51,12 +51,22 @@ export default function AddVendor() {
 
   const handleSaveVendor = async () => {
     if (!vendorName || !vendorContact || !vendorAddress) {
-      alert("Harap lengkapi informasi vendor.");
+      Swal.fire({
+        title: "Peringatan",
+        text: "Harap lengkapi informasi vendor.",
+        icon: "warning",
+        confirmButtonText: "OK",
+      });
       return;
     }
 
     if (produkList.length === 0) {
-      alert("Harap tambahkan setidaknya satu produk.");
+      Swal.fire({
+        title: "Peringatan",
+        text: "Harap tambahkan setidaknya satu produk.",
+        icon: "warning",
+        confirmButtonText: "OK",
+      });
       return;
     }
 
@@ -72,9 +82,12 @@ export default function AddVendor() {
       const transactionItems = []; // Renamed from transactionItems to vendorParts for clarity
       for (const produk of produkList) {
         // 2. Create or find Kategori Part
-        const kategoriRes = await APIEndpoint.post("/api/kategori-part/first-or-create", {
-          nama_kategori: produk.kategori_name,
-        });
+        const kategoriRes = await APIEndpoint.post(
+          "/api/kategori-part/first-or-create",
+          {
+            nama_kategori: produk.kategori_name,
+          }
+        );
         const idKategoriPart = kategoriRes.data.id_kategori_part;
 
         // 3. Create or find Part
@@ -98,11 +111,38 @@ export default function AddVendor() {
         // but rather adding parts to a vendor.
       }
 
-      alert("Vendor dan produk berhasil ditambahkan!");
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Vendor dan produk berhasil ditambahkan!",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
       router.push("/vendor");
     } catch (error) {
       console.error("Gagal menyimpan vendor dan produk:", error);
-      alert("Gagal menyimpan vendor dan produk. Silakan coba lagi.");
+      Swal.fire({
+        title: "Gagal!",
+        text: "Gagal menyimpan vendor dan produk. Silakan coba lagi.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
+  };
+
+  const handleArrowNavigation = (e, rowIndex, colIndex) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const next = document.querySelector(
+        `[data-row='${rowIndex}'][data-col='${colIndex + 1}']`
+      );
+      next?.focus();
+    }
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const prev = document.querySelector(
+        `[data-row='${rowIndex}'][data-col='${colIndex - 1}']`
+      );
+      prev?.focus();
     }
   };
 
@@ -131,9 +171,7 @@ export default function AddVendor() {
             </div>
             {/* Detail Vendor */}
             <div className="p-2 mb-8">
-              <h3 className="font-bold text-[#48505E] mb-5">
-                Detail Vendor
-              </h3>
+              <h3 className="font-bold text-[#48505E] mb-5">Detail Vendor</h3>
               <div className="grid gap-4 text-sm text-[#383E49]">
                 {[
                   {
@@ -154,43 +192,42 @@ export default function AddVendor() {
                     placeholder: "Masukkan alamat vendor",
                     type: "textarea",
                   },
-                ].map(
-                  ({ label, key, type, placeholder }) => {
-                    let value = "", setter = () => { };
-                    if (key === "nama_vendor") {
-                      value = vendorName;
-                      setter = setVendorName;
-                    } else if (key === "nomor_kontak") {
-                      value = vendorContact;
-                      setter = setVendorContact;
-                    } else if (key === "alamat") {
-                      value = vendorAddress;
-                      setter = setVendorAddress;
-                    }
-
-                    return (
-                      <div key={key} className="flex items-center gap-4 mb-2">
-                        <p className="w-40 text-gray-500 capitalize">{label}</p>
-                        {type === "textarea" ? (
-                          <textarea
-                            placeholder={placeholder}
-                            value={value}
-                            onChange={(e) => setter(e.target.value)}
-                            className="w-[450px] border rounded-md px-2 py-1 h-24 resize-none"
-                          />
-                        ) : (
-                          <input
-                            type={type}
-                            placeholder={placeholder}
-                            value={value}
-                            onChange={(e) => setter(e.target.value)}
-                            className="w-[450px] border rounded-md px-2 py-1"
-                          />
-                        )}
-                      </div>
-                    );
+                ].map(({ label, key, type, placeholder }) => {
+                  let value = "",
+                    setter = () => {};
+                  if (key === "nama_vendor") {
+                    value = vendorName;
+                    setter = setVendorName;
+                  } else if (key === "nomor_kontak") {
+                    value = vendorContact;
+                    setter = setVendorContact;
+                  } else if (key === "alamat") {
+                    value = vendorAddress;
+                    setter = setVendorAddress;
                   }
-                )}
+
+                  return (
+                    <div key={key} className="flex items-center gap-4 mb-2">
+                      <p className="w-40 text-gray-500 capitalize">{label}</p>
+                      {type === "textarea" ? (
+                        <textarea
+                          placeholder={placeholder}
+                          value={value}
+                          onChange={(e) => setter(e.target.value)}
+                          className="w-[450px] border rounded-md px-2 py-1 h-24 resize-none"
+                        />
+                      ) : (
+                        <input
+                          type={type}
+                          placeholder={placeholder}
+                          value={value}
+                          onChange={(e) => setter(e.target.value)}
+                          className="w-[450px] border rounded-md px-2 py-1"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             {/* Produk Detail */}
@@ -212,78 +249,133 @@ export default function AddVendor() {
                   <tbody>
                     {produkList.map((produk, index) => (
                       <tr key={index} className="bg-white">
+                        {/* Nama Part */}
                         <td className="px-4 py-2">
-                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                          <div className="max-h-[48px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[180px] px-3 py-2 text-sm border-none focus:outline-none bg-transparent"
                               value={produk.part_name}
+                              data-row={index}
+                              data-col={0}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 0)
+                              }
                               onChange={(e) =>
                                 handleChange(index, "part_name", e.target.value)
                               }
                             />
                           </div>
                         </td>
+
+                        {/* Kategori */}
                         <td className="px-4 py-2">
-                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                          <div className="max-h-[48px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[140px] px-3 py-2 text-sm border-none focus:outline-none bg-transparent"
                               value={produk.kategori_name}
+                              data-row={index}
+                              data-col={1}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 1)
+                              }
                               onChange={(e) =>
-                                handleChange(index, "kategori_name", e.target.value)
+                                handleChange(
+                                  index,
+                                  "kategori_name",
+                                  e.target.value
+                                )
                               }
                             />
                           </div>
                         </td>
+
+                        {/* Kode Part */}
                         <td className="px-4 py-2">
-                          <div className="maxpart-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                          <div className="max-h-[48px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[120px] px-3 py-2 text-sm border-none focus:outline-none bg-transparent"
                               value={produk.kode_part}
+                              data-row={index}
+                              data-col={2}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 2)
+                              }
                               onChange={(e) =>
                                 handleChange(index, "kode_part", e.target.value)
                               }
                             />
                           </div>
                         </td>
+
+                        {/* Merk Part */}
                         <td className="px-4 py-2">
-                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                          <div className="max-h-[48px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[120px] px-3 py-2 text-sm border-none focus:outline-none bg-transparent"
                               value={produk.merk_part}
+                              data-row={index}
+                              data-col={3}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 3)
+                              }
                               onChange={(e) =>
                                 handleChange(index, "merk_part", e.target.value)
                               }
                             />
                           </div>
                         </td>
+
+                        {/* Satuan Part */}
                         <td className="px-4 py-2">
-                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                          <div className="max-h-[48px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[120px] px-3 py-2 text-sm border-none focus:outline-none bg-transparent"
                               value={produk.satuan_part}
+                              data-row={index}
+                              data-col={4}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 4)
+                              }
                               onChange={(e) =>
-                                handleChange(index, "satuan_part", e.target.value)
+                                handleChange(
+                                  index,
+                                  "satuan_part",
+                                  e.target.value
+                                )
                               }
                             />
                           </div>
                         </td>
+
+                        {/* Harga Part */}
                         <td className="px-4 py-2">
-                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
+                          <div className="max-h-[48px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="number"
-                              className="w-full px-2 py-1 border-none focus:outline-none bg-transparent"
+                              className="w-full min-w-[120px] px-3 py-2 text-sm border-none focus:outline-none bg-transparent"
                               value={produk.harga_part}
+                              data-row={index}
+                              data-col={5}
+                              onKeyDown={(e) =>
+                                handleArrowNavigation(e, index, 5)
+                              }
                               onChange={(e) =>
-                                handleChange(index, "harga_part", e.target.value)
+                                handleChange(
+                                  index,
+                                  "harga_part",
+                                  e.target.value
+                                )
                               }
                             />
                           </div>
                         </td>
+
+                        {/* Tombol Hapus */}
                         <td className="px-4 py-2">
                           <button
                             onClick={() => handleHapusProduk(index)}
@@ -295,6 +387,7 @@ export default function AddVendor() {
                       </tr>
                     ))}
 
+                    {/* Tambah Produk */}
                     <tr className="text-gray-400">
                       <td className="px-4 py-2">
                         <button
@@ -309,8 +402,6 @@ export default function AddVendor() {
                   </tbody>
                 </table>
               </div>
-
-              
             </div>
 
             {/* Batal dan Tambah */}
@@ -332,5 +423,5 @@ export default function AddVendor() {
         </section>
       </main>
     </div>
-  )
+  );
 }

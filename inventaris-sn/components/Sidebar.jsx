@@ -6,67 +6,82 @@ import { logout, getUser } from "@/app/api/auth.jsx";
 import { useEffect, useState } from "react";
 
 const navItemsMain = [
+  // Inventory Management
   {
     label: "Dashboard",
     href: "/dashboard",
     icon: "/icons/Home.svg",
     iconActive: "/icons/Home-active.svg",
+    section: "Inventory Management",
   },
   {
     label: "Inventory",
     href: "/inventory",
     icon: "/icons/Inventory.svg",
     iconActive: "/icons/Inventory-active.svg",
+    section: "Inventory Management",
   },
   {
     label: "Stock In",
     href: "/stockin",
     icon: "/icons/StockIn.svg",
     iconActive: "/icons/StockIn-active.svg",
+    section: "Inventory Management",
   },
   {
     label: "Stock Out",
     href: "/stockout",
     icon: "/icons/StockOut.svg",
     iconActive: "/icons/StockOut-active.svg",
+    section: "Inventory Management",
   },
+
+  // Vendor Management
   {
     label: "Transaction",
     href: "/transaction",
     icon: "/icons/Transaction.svg",
     iconActive: "/icons/Transaction-active.svg",
+    section: "Vendor Management",
   },
   {
     label: "Best Price Parts",
     href: "/bestprice",
     icon: "/icons/Price.svg",
     iconActive: "/icons/Price-active.svg",
+    section: "Vendor Management",
   },
   {
     label: "Vendor",
     href: "/vendor",
     icon: "/icons/Vendor.svg",
     iconActive: "/icons/Vendor-active.svg",
+    section: "Vendor Management",
   },
   {
     label: "Parts",
     href: "/parts",
     icon: "/icons/Parts.svg",
     iconActive: "/icons/Parts-active.svg",
+    section: "Vendor Management",
   },
+
+  // User Management
   {
     label: "User",
     href: "/user",
     icon: "/icons/User.svg",
     iconActive: "/icons/User-active.svg",
-    roles: ['admin'],
+    roles: ["admin"],
+    section: "User Management",
   },
   {
     label: "History User",
     href: "/history",
     icon: "/icons/History.svg",
     iconActive: "/icons/History-active.svg",
-    roles: ['admin'],
+    roles: ["admin"],
+    section: "User Management",
   },
 ];
 
@@ -93,9 +108,9 @@ export default function Sidebar() {
   const handleLogout = async () => {
     try {
       await logout();
-      router.push('/');
+      router.push("/");
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     }
   };
 
@@ -111,10 +126,11 @@ export default function Sidebar() {
   const renderNavItem = ({ label, href, icon, iconActive, onClick }) => {
     const isActive = href && pathname.startsWith(href);
 
-    const itemClasses = `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
-      ? "bg-blue-50 text-[#1570EF]"
-      : "text-gray-700 hover:bg-gray-100"
-      }`;
+    const itemClasses = `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+      isActive
+        ? "bg-blue-50 text-[#1570EF]"
+        : "text-gray-700 hover:bg-gray-100"
+    }`;
 
     if (onClick) {
       return (
@@ -145,13 +161,20 @@ export default function Sidebar() {
     );
   };
 
-  // Filter navItemsMain based on user role
-  const filteredNavItemsMain = navItemsMain.filter(item => {
+  // Filter navItemsMain berdasarkan role
+  const filteredNavItemsMain = navItemsMain.filter((item) => {
     if (item.roles) {
       return item.roles.includes(userRole);
     }
-    return true; // Show by default if no roles specified
+    return true;
   });
+
+  // Group items berdasarkan section
+  const groupedNavItems = filteredNavItemsMain.reduce((acc, item) => {
+    if (!acc[item.section]) acc[item.section] = [];
+    acc[item.section].push(item);
+    return acc;
+  }, {});
 
   return (
     <aside className="h-screen w-64 bg-white fixed top-0 left-0 flex flex-col">
@@ -163,13 +186,21 @@ export default function Sidebar() {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex flex-col p-4 gap-2">{
-        filteredNavItemsMain.map(renderNavItem)
-      }
+      <nav className="flex flex-1 overflow-y-auto flex-col p-4 gap-4">
+        {Object.entries(groupedNavItems).map(([section, items]) => (
+          <div key={section}>
+            <span className="text-xs font-semibold text-gray-500 px-2 uppercase tracking-wide">
+              {section}
+            </span>
+            <div className="flex flex-col gap-2 mt-2">
+              {items.map(renderNavItem)}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Bottom Navigation */}
-      <nav className="flex flex-col p-4 gap-2 mt-auto mb-6">
+      <nav className="flex flex-col p-4 gap-2 mt-auto mb-6 border-t border-[#E5E7EB]">
         {navItemsBottom.map(renderNavItem)}
       </nav>
     </aside>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import DetailInventory from "./DetailInventory";
 import APIEndpoint from "@/app/api/api";
+import Swal from "sweetalert2";
 
 function getStatus(status) {
   if (status === "Need Order") {
@@ -119,7 +120,17 @@ export default function TabelInv() {
         produk_satuan: newItem.produk_satuan,
         produk_minimum_stok: parseInt(newItem.produk_minimum_stok),
       });
-      alert("Produk berhasil ditambahkan!");
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Produk berhasil ditambahkan!",
+        icon: "success",
+        confirmButtonText: "OK",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Refresh page
+          window.location.reload();
+        }
+      });
       setShowModal(false);
       setNewItem({
         nama_produk: "",
@@ -129,10 +140,14 @@ export default function TabelInv() {
         produk_minimum_stok: 0,
       });
       fetchInventory();
-      window.location.reload();
     } catch (error) {
       console.error("Error adding product:", error);
-      alert("Gagal menambahkan produk. Silakan coba lagi.");
+      Swal.fire({
+        title: "Gagal!",
+        text: "Gagal menambahkan produk. Silakan coba lagi.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -158,7 +173,7 @@ export default function TabelInv() {
                 placeholder="Cari produk..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="border border-gray-300 px-3 py-2 rounded-sm text-sm focus:outline-none focus:ring focus:border-blue-300"
+                className="border border-gray-300 px-3 py-2 rounded-sm text-sm focus:outline-none focus:ring focus:border-blue-300 w-40"
               />
               <button
                 onClick={() => setShowModal(true)}
@@ -183,7 +198,7 @@ export default function TabelInv() {
                         setSelectedCategory(e.target.value);
                         setCurrentPage(1);
                       }}
-                      className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center"
+                      className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center w-36 truncate"
                     >
                       {categories.map((cat, i) => (
                         <option key={i} value={cat}>

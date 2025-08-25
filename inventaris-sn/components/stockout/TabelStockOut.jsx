@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import DetailStockOut from "./DetailStockOut";
 import APIEndpoint from "@/app/api/api";
+import Swal from "sweetalert2";
 
 export default function TabelStockOut() {
   const itemsPerPage = 10;
@@ -149,13 +150,22 @@ export default function TabelStockOut() {
       setShowModal(false);
       resetForm();
       fetchData();
-      window.location.reload();
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Stock Out Berhasil Ditambahkan!",
+        icon: "success",
+        confirmButtonText: "OK",
+      }).then(() => {
+        window.location.reload();
+      });
     } catch (error) {
       console.error("Error adding stock out:", error);
-      alert(
-        "Failed to add stock out: " +
-          (error.response?.data?.message || error.message)
-      );
+      Swal.fire({
+        title: "Gagal Menambahkan Stock Out",
+        text: error.response?.data?.message || error.message,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -496,7 +506,9 @@ export default function TabelStockOut() {
                           name={name}
                           value={formData[name]}
                           onChange={handleChange}
-                          onBlur={name === "name" ? handleProductInputBlur : undefined}
+                          onBlur={
+                            name === "name" ? handleProductInputBlur : undefined
+                          }
                           placeholder={
                             type !== "date" ? placeholder : undefined
                           }

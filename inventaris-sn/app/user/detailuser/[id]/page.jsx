@@ -3,15 +3,23 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import APIEndpoint from "@/app/api/api";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function DetailUser() {
   const [editMode, setEditMode] = useState(false);
   const router = useRouter();
   const params = useParams();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { id } = params;
 
   const [user, setUser] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', password_confirmation: '' });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [history, setHistory] = useState([]);
@@ -24,7 +32,11 @@ export default function DetailUser() {
         try {
           const response = await APIEndpoint.get(`/api/users/${id}`);
           setUser(response.data);
-          setFormData({ ...response.data, password: '', password_confirmation: '' });
+          setFormData({
+            ...response.data,
+            password: "",
+            password_confirmation: "",
+          });
         } catch (err) {
           setError(err.message);
         } finally {
@@ -33,7 +45,9 @@ export default function DetailUser() {
       };
       const fetchHistory = async () => {
         try {
-          const response = await APIEndpoint.get(`/api/history-users/user/${id}`);
+          const response = await APIEndpoint.get(
+            `/api/history-users/user/${id}`
+          );
           setHistory(response.data);
         } catch (err) {
           setHistoryError(err.message);
@@ -47,7 +61,7 @@ export default function DetailUser() {
   }, [id]);
 
   const handleCancel = () => {
-    setFormData({ ...user, password: '', password_confirmation: '' });
+    setFormData({ ...user, password: "", password_confirmation: "" });
     setEditMode(false);
   };
 
@@ -81,7 +95,8 @@ export default function DetailUser() {
     }
   };
 
-  if (error) return <div className="text-center p-4 text-red-500">Error: {error}</div>;
+  if (error)
+    return <div className="text-center p-4 text-red-500">Error: {error}</div>;
 
   return (
     <div className="bg-[#F0F1F3] min-h-screen">
@@ -94,7 +109,10 @@ export default function DetailUser() {
             <div className="flex gap-2">
               {!editMode && (
                 <div className="flex gap-2">
-                  <button onClick={handleDelete} className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 text-sm">
+                  <button
+                    onClick={handleDelete}
+                    className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 text-sm"
+                  >
                     Hapus
                   </button>
                   <button
@@ -162,31 +180,61 @@ export default function DetailUser() {
                   <label className="block text-sm font-medium mb-1 text-[#858D9D] w-40">
                     New Password
                   </label>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    className={`w-[450px] border rounded px-2 py-1 text-sm bg-white`}
-                  />
+                  <div className="relative w-[450px]">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      className="w-full border rounded px-2 py-1 text-sm bg-white pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4 mb-2">
                   <label className="block text-sm font-medium mb-1 text-[#858D9D] w-40">
                     Confirm New Password
                   </label>
-                  <input
-                    type="password"
-                    value={formData.password_confirmation}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password_confirmation: e.target.value })
-                    }
-                    className={`w-[450px] border rounded px-2 py-1 text-sm bg-white`}
-                  />
+                  <div className="relative w-[450px]">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={formData.password_confirmation}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          password_confirmation: e.target.value,
+                        })
+                      }
+                      className="w-full border rounded px-2 py-1 text-sm bg-white pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 text-sm"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </>
             )}
-
 
             {/* Tombol Batal & Edit User di Edit Mode */}
             {editMode && (
@@ -221,11 +269,15 @@ export default function DetailUser() {
               <tbody>
                 {historyLoading ? (
                   <tr>
-                    <td colSpan="3" className="text-center py-4">Loading history...</td>
+                    <td colSpan="3" className="text-center py-4">
+                      Loading history...
+                    </td>
                   </tr>
                 ) : historyError ? (
                   <tr>
-                    <td colSpan="3" className="text-center py-4 text-red-500">Error: {historyError}</td>
+                    <td colSpan="3" className="text-center py-4 text-red-500">
+                      Error: {historyError}
+                    </td>
                   </tr>
                 ) : (
                   history.map((item, index) => (

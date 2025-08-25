@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import APIEndpoint from "@/app/api/api";
+import Swal from "sweetalert2";
 
 export default function DetailInventory({ product, onClose }) {
   const [editedProduct, setEditedProduct] = useState({});
@@ -61,12 +62,22 @@ export default function DetailInventory({ product, onClose }) {
         payload
       );
 
-      alert("Perubahan berhasil disimpan!");
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Perubahan berhasil disimpan!",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
       setIsEditing(false);
       // Optionally, re-fetch data in parent component or update local state
     } catch (error) {
       console.error("Terjadi kesalahan saat menyimpan:", error);
-      alert("Terjadi kesalahan saat menyimpan");
+      Swal.fire({
+        title: "Gagal!",
+        text: "Terjadi kesalahan saat menyimpan.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -76,11 +87,24 @@ export default function DetailInventory({ product, onClose }) {
 
     try {
       await APIEndpoint.delete(`/api/inventori/${product.id_produk}`);
-      alert("Data berhasil dihapus!");
-      onClose(); // Close the detail view after deletion
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Data berhasil dihapus!",
+        icon: "success",
+        confirmButtonText: "OK",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          onClose();
+        }
+      });
     } catch (error) {
       console.error("Terjadi kesalahan saat menghapus:", error);
-      alert("Terjadi kesalahan saat menghapus");
+      Swal.fire({
+        title: "Gagal!",
+        text: "Terjadi kesalahan saat menghapus.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -159,18 +183,34 @@ export default function DetailInventory({ product, onClose }) {
           { label: "Satuan", key: "produk_satuan" },
           { label: "Minimum Stok", key: "produk_minimum_stok", type: "number" },
           { label: "Stock In", key: "stok_in", type: "number", readOnly: true },
-          { label: "Stock Out", key: "stok_out", type: "number", readOnly: true },
-          { label: "Stock Akhir", key: "stok_akhir", type: "number", readOnly: true },
+          {
+            label: "Stock Out",
+            key: "stok_out",
+            type: "number",
+            readOnly: true,
+          },
+          {
+            label: "Stock Akhir",
+            key: "stok_akhir",
+            type: "number",
+            readOnly: true,
+          },
         ].map(({ label, key, type = "text", readOnly = false }) => (
           <div key={key} className="flex items-center gap-4 mb-2">
             <p className="w-40 text-gray-500">{label}</p>
             <input
               type={type}
-              value={key === "nama_kategori" ? editedProduct.kategori_inv?.nama_kategori || "" : editedProduct[key] ?? ""}
+              value={
+                key === "nama_kategori"
+                  ? editedProduct.kategori_inv?.nama_kategori || ""
+                  : editedProduct[key] ?? ""
+              }
               onChange={(e) => handleChange(key, e.target.value)}
               readOnly={!isEditing || readOnly}
               className={`w-[450px] border rounded-md px-2 py-1 ${
-                !isEditing || readOnly ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
+                !isEditing || readOnly
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : ""
               }`}
             />
           </div>
@@ -180,9 +220,9 @@ export default function DetailInventory({ product, onClose }) {
         <div className="flex items-center gap-4 mb-2">
           <p className="w-40 text-gray-500">Status</p>
           <p
-            className={`w-[300px] font-semibold ${
-              getStatus(editedProduct.produk_status)
-            }`}
+            className={`w-[300px] font-semibold ${getStatus(
+              editedProduct.produk_status
+            )}`}
           >
             {editedProduct.produk_status}
           </p>

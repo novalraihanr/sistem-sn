@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import APIEndpoint from "@/app/api/api";
+import Swal from "sweetalert2";
 
 export default function DetailStockIn({ product, onClose, refetchData }) {
   const [editedProduct, setEditedProduct] = useState({});
@@ -14,7 +15,9 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
         setLoading(true);
         setError(null);
         try {
-          const response = await APIEndpoint.get(`api/stok-in/${product.id_stokin}`);
+          const response = await APIEndpoint.get(
+            `api/stok-in/${product.id_stokin}`
+          );
           const fetchedProduct = response.data;
           setEditedProduct({
             ...fetchedProduct,
@@ -47,8 +50,6 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
   if (error) return <div>Error: {error}</div>;
   if (!editedProduct.id_stokin) return null;
 
-
-
   if (!editedProduct.id_stokin) return null;
 
   const handleChange = (field, value) => {
@@ -71,7 +72,9 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
         setLoading(true);
         setError(null);
         try {
-          const response = await APIEndpoint.get(`api/stok-in/${product.id_stokin}`);
+          const response = await APIEndpoint.get(
+            `api/stok-in/${product.id_stokin}`
+          );
           const fetchedProduct = response.data;
           setEditedProduct({
             ...fetchedProduct,
@@ -116,15 +119,22 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
         payload
       );
 
-      alert("Perubahan berhasil disimpan!");
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Perubahan berhasil disimpan!",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
 
       setIsEditing(false);
     } catch (err) {
       console.error(err);
-      alert(
-        "Terjadi kesalahan saat menyimpan: " +
-        (err.response?.data?.message || err.message)
-      );
+      Swal.fire({
+        title: "Gagal!",
+        text: error.response?.data?.message || error.message,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -136,11 +146,24 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
     try {
       await APIEndpoint.delete(`api/stok-in/${product.id_stokin}`);
 
-      alert("Data berhasil dihapus!");
-      onClose();
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Data berhasil dihapus!",
+        icon: "success",
+        confirmButtonText: "OK",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          onClose();
+        }
+      });
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan saat menghapus: " + (err.response?.data?.message || err.message));
+      Swal.fire({
+        title: "Gagal!",
+        text: error.response?.data?.message || error.message,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -156,15 +179,17 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
             <>
               {/* Tombol hapus dan edit */}
               <button
-                className={`bg-red-600 text-white px-4 py-1 rounded-sm hover:bg-red-700 text-sm ${isEditing ? "hidden" : ""
-                  }`}
+                className={`bg-red-600 text-white px-4 py-1 rounded-sm hover:bg-red-700 text-sm ${
+                  isEditing ? "hidden" : ""
+                }`}
                 onClick={handleDelete}
               >
                 Hapus
               </button>
               <button
-                className={`border border-gray-300 px-4 py-1 rounded-sm text-sm hover:bg-gray-100 ${isEditing ? "hidden" : ""
-                  }`}
+                className={`border border-gray-300 px-4 py-1 rounded-sm text-sm hover:bg-gray-100 ${
+                  isEditing ? "hidden" : ""
+                }`}
                 onClick={() => setIsEditing(true)}
               >
                 Edit
@@ -172,15 +197,17 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
 
               {/* Tombol batal dan simpan */}
               <button
-                className={`border border-gray-300 px-4 py-1 rounded-sm text-sm hover:bg-gray-100 text-gray-600 ${!isEditing ? "hidden" : ""
-                  }`}
+                className={`border border-gray-300 px-4 py-1 rounded-sm text-sm hover:bg-gray-100 text-gray-600 ${
+                  !isEditing ? "hidden" : ""
+                }`}
                 onClick={handleCancel}
               >
                 Batal
               </button>
               <button
-                className={`bg-blue-600 text-white px-4 py-1 rounded-sm hover:bg-blue-700 text-sm ${!isEditing ? "hidden" : ""
-                  }`}
+                className={`bg-blue-600 text-white px-4 py-1 rounded-sm hover:bg-blue-700 text-sm ${
+                  !isEditing ? "hidden" : ""
+                }`}
                 onClick={handleSave}
               >
                 Simpan Perubahan
@@ -237,13 +264,12 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
                 type={type}
                 value={value}
                 onChange={(e) => handleChange(key, e.target.value)}
-                readOnly={
+                readOnly={!isEditing || key === "harga_total"}
+                className={`w-[450px] border rounded-md px-2 py-1 ${
                   !isEditing || key === "harga_total"
-                }
-                className={`w-[450px] border rounded-md px-2 py-1 ${!isEditing || key === "harga_total"
-                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                  : ""
-                  }`}
+                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                    : ""
+                }`}
               />
             </div>
           );
