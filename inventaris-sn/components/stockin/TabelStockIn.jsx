@@ -354,7 +354,7 @@ export default function TabelStockIn() {
                   <th className="py-2 px-4">Satuan</th>
                   <th className="py-2 px-4">Spesifikasi</th>
                   <th className="py-2 px-4">NO PO-MO</th>
-                  <th className="py-2 px-4">Untuk</th>
+                  <th className="py-2 px-4">Input By</th>
                   <th className="py-2 px-4">Harga Satuan</th>
                   <th className="py-2 px-4">Harga Total</th>
                 </tr>
@@ -481,11 +481,6 @@ export default function TabelStockIn() {
                       label: "NO PO-MO",
                       name: "stokin_nopomo",
                       placeholder: "Masukkan NO PO-MO",
-                    },
-                    {
-                      label: "Digunakan Untuk",
-                      name: "stokin_digunakan",
-                      placeholder: "Masukkan digunakan untuk",
                     },
                     {
                       label: "Harga Satuan",

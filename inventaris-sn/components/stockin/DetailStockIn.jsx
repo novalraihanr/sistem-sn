@@ -244,7 +244,7 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
           { label: "Satuan", key: "satuan" },
           { label: "Spesifikasi", key: "spesifikasi" },
           { label: "NO PO-MO", key: "po" },
-          { label: "Untuk", key: "untuk" },
+          { label: "Input By", key: "input_by" },
           { label: "Harga Satuan", key: "harga_satuan" },
           { label: "Harga Total", key: "harga_total" },
           { label: "Tanggal", key: "tanggal", type: "date" },

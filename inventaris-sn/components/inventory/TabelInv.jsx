@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import DetailInventory from "./DetailInventory";
 import APIEndpoint from "@/app/api/api";
 import Swal from "sweetalert2";
@@ -16,6 +17,7 @@ function getStatus(status) {
 }
 
 export default function TabelInv() {
+  const router = useRouter();
   const itemsPerPage = 10;
   const [inventoryData, setInventoryData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -148,7 +150,7 @@ export default function TabelInv() {
         confirmButtonText: "OK",
       });
     }
-  }; 
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm w-full">
@@ -231,9 +233,12 @@ export default function TabelInv() {
                   </div>
                 </div>
 
-                {/* Button Download All */}
-                <button className="text-sm text-[#5D6679] border border-[#D0D3D9] px-3 py-2 rounded-sm hover:bg-gray-100">
-                  Download All
+                {/* Button Riwayat */}
+                <button
+                  className="text-sm text-[#5D6679] border border-[#D0D3D9] px-3 py-2 rounded-sm hover:bg-gray-100"
+                  onClick={() => router.push("/inventory/historyinv")}
+                >
+                  Riwayat
                 </button>
               </div>
             </div>
