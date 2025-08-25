@@ -127,8 +127,7 @@ export default function TabelInv() {
         confirmButtonText: "OK",
       }).then((result) => {
         if (result.isConfirmed) {
-          // Refresh page
-          window.location.reload();
+          window.dispatchEvent(new Event("refetchSummary"));
         }
       });
       setShowModal(false);
@@ -149,16 +148,17 @@ export default function TabelInv() {
         confirmButtonText: "OK",
       });
     }
-  };
+  }; 
 
   return (
     <div className="bg-white rounded-lg shadow-sm w-full">
       {showDetail && selectedProduct ? (
         <DetailInventory
           product={selectedProduct}
-          onClose={() => {
+          onClose={async () => {
             setShowDetail(false);
-            window.location.reload();
+            await fetchInventory();
+            window.dispatchEvent(new Event("refetchSummary")); // kasih sinyal ke InvSum
           }}
           refetchData={fetchInventory}
         />
@@ -252,6 +252,7 @@ export default function TabelInv() {
                   <th className="py-2 px-4">Stock Akhir</th>
                   <th className="py-2 px-4">Satuan</th>
                   <th className="py-2 px-4">Minimum Stock</th>
+                  <th className="py-2 px-4">Spesifikasi</th>
                   <th className="py-2 px-4">Status</th>
                 </tr>
               </thead>
@@ -291,7 +292,10 @@ export default function TabelInv() {
                       <td className="py-2 px-4">{item.stok_out}</td>
                       <td className="py-2 px-4">{item.stok_akhir}</td>
                       <td className="py-2 px-4">{item.produk_satuan}</td>
-                      <td className="py-2 px-4">{item.produk_minimum_stok}</td>
+                      <td className="py-2 px-4 text-center">
+                        {item.produk_minimum_stok}
+                      </td>
+                      <td className="py-2 px-4">Spesifikasi Dummy</td>
                       <td className="py-2 px-4">
                         {getStatus(item.produk_status)}
                       </td>
@@ -374,6 +378,12 @@ export default function TabelInv() {
                       name: "produk_minimum_stok",
                       placeholder: "Masukan minimum stok",
                       type: "number",
+                    },
+                    {
+                      label: "Spesifikasi",
+                      name: "spesifikasi",
+                      placeholder: "Masukan spesifikasi produk",
+                      type: "text",
                     },
                   ].map((field) => (
                     <div key={field.name} className="flex flex-col gap-1">

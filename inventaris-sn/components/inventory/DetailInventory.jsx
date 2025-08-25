@@ -195,6 +195,7 @@ export default function DetailInventory({ product, onClose }) {
             type: "number",
             readOnly: true,
           },
+          { label: "Spesifikasi", key: "spesifikasi" }
         ].map(({ label, key, type = "text", readOnly = false }) => (
           <div key={key} className="flex items-center gap-4 mb-2">
             <p className="w-40 text-gray-500">{label}</p>

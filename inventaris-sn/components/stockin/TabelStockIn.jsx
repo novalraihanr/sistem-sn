@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import DetailStockIn from "./DetailStockIn";
 import APIEndpoint from "@/app/api/api";
+import Swal from "sweetalert2";
 
 export default function TabelStockIn() {
   const itemsPerPage = 10;
@@ -20,7 +21,7 @@ export default function TabelStockIn() {
     nama_kategori: "",
     stokin_kuantitas: "",
     stokin_spesifikasi: "",
-    stokin_nopomo: "",
+    stokin_nopomo: "", 
     stokin_digunakan: "",
     stokin_harga_produk: "",
     stokin_tanggal: "",
@@ -144,7 +145,7 @@ export default function TabelStockIn() {
         icon: "success",
         confirmButtonText: "OK",
       }).then(() => {
-        window.location.reload();
+        window.dispatchEvent(new Event("refetchStockIn"));
       });
     } catch (error) {
       console.error("Error adding stock in:", error);
@@ -257,9 +258,10 @@ export default function TabelStockIn() {
       {showDetail && selectedProduct ? (
         <DetailStockIn
           product={selectedProduct}
-          onClose={() => {
+          onClose={async () => {
             setShowDetail(false);
-            window.location.reload();
+            await fetchData();
+            window.dispatchEvent(new Event("refetchStockIn"));
           }}
           refetchData={fetchData}
         />

@@ -8,35 +8,49 @@ export default function InvSum() {
   const [totalKategori, setTotalKategori] = useState(0);
   const [lastUpdated, setLastUpdated] = useState("N/A");
 
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const res = await APIEndpoint.get("/api/inventori/counts");
-        setTotalProduk(res.data.total_produk);
-        setTotalKategori(res.data.total_kategori);
-        if (res.data.latest_update) {
-          const updateDate = new Date(res.data.latest_update);
-          const today = new Date();
-          const diffTime = Math.abs(today.getTime() - updateDate.getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const fetchCounts = async () => {
+    try {
+      const res = await APIEndpoint.get("/api/inventori/counts");
+      setTotalProduk(res.data.total_produk);
+      setTotalKategori(res.data.total_kategori);
 
-          if (diffDays === 0) {
-            setLastUpdated("Today");
-          } else if (diffDays === 1) {
-            setLastUpdated("1 day ago");
-          } else {
-            setLastUpdated(`${diffDays} days ago`);
-          }
+      if (res.data.latest_update) {
+        const updateDate = new Date(res.data.latest_update); 
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - updateDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) {
+          setLastUpdated("Today");
+        } else if (diffDays === 1) {
+          setLastUpdated("1 day ago");
         } else {
-          setLastUpdated("No updates yet");
+          setLastUpdated(`${diffDays} days ago`);
         }
-      } catch (err) {
-        console.error("Gagal mengambil data inventori summary:", err);
+      } else {
+        setLastUpdated("No updates yet");
       }
-    };
+    } catch (err) {
+      console.error("Gagal mengambil data inventori summary:", err);
+    }
+  };
 
+  useEffect(() => {
+    // fetch pertama kali
     fetchCounts();
+
+    // dengarkan event dari TabelInv
+    const handler = () => {
+      fetchCounts();
+    };
+    window.addEventListener("refetchSummary", handler);
+
+    // cleanup listener
+    return () => {
+      window.removeEventListener("refetchSummary", handler);
+    };
   }, []);
+
   return (
     <div className="bg-white rounded-lg shadow-sm w-full p-4">
       {/* Header */}

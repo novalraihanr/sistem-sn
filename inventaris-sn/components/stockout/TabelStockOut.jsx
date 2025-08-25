@@ -156,7 +156,7 @@ export default function TabelStockOut() {
         icon: "success",
         confirmButtonText: "OK",
       }).then(() => {
-        window.location.reload();
+        window.dispatchEvent(new Event("refetchStockOut"));
       });
     } catch (error) {
       console.error("Error adding stock out:", error);
@@ -279,10 +279,12 @@ export default function TabelStockOut() {
       {showDetail && selectedProduct ? (
         <DetailStockOut
           product={selectedProduct}
-          onClose={() => {
+          onClose={async () => {
             setShowDetail(false);
-            window.location.reload();
+            await fetchData();
+            window.dispatchEvent(new Event("refetchStockOut"));
           }}
+          refetchData={fetchData}
         />
       ) : (
         <>
