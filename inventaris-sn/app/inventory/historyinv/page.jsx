@@ -1,26 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import { useRouter } from "next/navigation";
+import APIEndpoint from "@/app/api/api";
 
 export default function HistoryInv() {
   const router = useRouter();
-  // Data dummy tahun
-  const currentItems = [{ tahun: 2025 }, { tahun: 2024 }, { tahun: 2023 }];
-
-  // Urutkan terbaru ke lama
-  const sortedItems = currentItems.sort((a, b) => b.tahun - a.tahun);
-
-  // Pagination state
+  const [years, setYears] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 30; // misal 1 item per halaman
-  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const itemsPerPage = 30;
 
-  // Ambil item untuk halaman sekarang
+  useEffect(() => {
+    const runArchive = async () => {
+      try {
+        const response = await APIEndpoint.post('/api/inventori/trigger-archive');
+        console.log('Archive status:', response.data.message);
+      } catch (error) {
+        console.error('Failed to trigger inventory archive:', error);
+      }
+    };
+
+    const fetchYears = async () => {
+        try {
+            const response = await APIEndpoint.get('/api/history-inventori/years');
+            setYears(response.data.map(year => ({ tahun: year })));
+        } catch (error) {
+            console.error('Failed to fetch history years:', error);
+        }
+    };
+
+    runArchive();
+    fetchYears();
+  }, []);
+
+  // Pagination logic
+  const totalPages = Math.ceil(years.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const paginatedItems = sortedItems.slice(indexOfFirstItem, indexOfLastItem);
+  const paginatedItems = years.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <div className="bg-[#F0F1F3] min-h-screen">
@@ -52,7 +70,7 @@ export default function HistoryInv() {
                     <td className="py-2 px-4">
                       <button
                         className="bg-[#1366D9] text-white px-3 py-1 rounded text-sm hover:bg-[#1570EF]"
-                        onClick={() => router.push("/inventory/historyinv/[id]")}
+                        onClick={() => router.push(`/inventory/historyinv/${item.tahun}`)}
                       >
                         Lihat Detail
                       </button>
@@ -74,9 +92,8 @@ export default function HistoryInv() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
-                currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+              className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+                }`}
             >
               Previous
             </button>
@@ -88,11 +105,10 @@ export default function HistoryInv() {
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
               disabled={currentPage === totalPages}
-              className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
-                currentPage === totalPages
-                  ? "opacity-50 cursor-not-allowed"
-                  : ""
-              }`}
+              className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+                }`}
             >
               Next
             </button>

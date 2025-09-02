@@ -13,11 +13,8 @@ class Part extends Model
     use HasFactory;
     protected $table = 'part';
     protected $primaryKey = 'id_part';
-    public $incrementing = false;
-    protected $keyType = 'string';
 
     protected $fillable = [
-        'id_part',
         'nama_part',
         'id_kategori_part'
     ];

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('vendor_part', function (Blueprint $table) {
             $table->id('id_vendorpart');
-            $table->string('id_part');
+            $table->unsignedBigInteger('id_part');
             $table->unsignedBigInteger('id_vendor');
             $table->double('harga_part');
             $table->double('harga_sebelumnya_part')->nullable(true);

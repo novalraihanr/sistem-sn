@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id("id_stokout");
             $table->unsignedBigInteger("id_produk");
             $table->integer("stokout_kuantitas");
-            $table->string("stokout_spesifikasi")->nullable(true);
             $table->string("stokout_digunakan");
             $table->string("stokout_divisi");
             $table->string("stokout_keterangan");

@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id("id_stokin");
             $table->unsignedBigInteger("id_produk");
             $table->integer("stokin_kuantitas");
-            $table->string("stokin_spesifikasi")->nullable(true);
             $table->string("stokin_nopomo");
             $table->string("stokin_digunakan");
             $table->integer("stokin_harga_produk");

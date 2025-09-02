@@ -6,6 +6,7 @@ import APIEndpoint from "@/app/api/api";
 export default function InvSum() {
   const [totalProduk, setTotalProduk] = useState(0);
   const [totalKategori, setTotalKategori] = useState(0);
+  const [totalSupplier, setTotalSupplier] = useState(0);
   const [lastUpdated, setLastUpdated] = useState("N/A");
 
   const fetchCounts = async () => {
@@ -13,9 +14,10 @@ export default function InvSum() {
       const res = await APIEndpoint.get("/api/inventori/counts");
       setTotalProduk(res.data.total_produk);
       setTotalKategori(res.data.total_kategori);
+      setTotalSupplier(res.data.total_supplier);
 
       if (res.data.latest_update) {
-        const updateDate = new Date(res.data.latest_update); 
+        const updateDate = new Date(res.data.latest_update);
         const today = new Date();
         const diffTime = Math.abs(today.getTime() - updateDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -71,6 +73,13 @@ export default function InvSum() {
           <p className="font-bold text-[#E19133] mb-2">Total Produk</p>
           <p className="produk-num mb-2 text-[#5D6679] font-bold">
             {totalProduk}
+          </p>
+          <p className="text-sm text-[#5D6679]">Last Update: {lastUpdated}</p>
+        </div>
+        <div className="jml-supplier pr-7">
+          <p className="font-bold text-green-600 mb-2">Total Supplier</p>
+          <p className="supplier-num mb-2 text-[#5D6679] font-bold">
+            {totalSupplier}
           </p>
           <p className="text-sm text-[#5D6679]">Last Update: {lastUpdated}</p>
         </div>

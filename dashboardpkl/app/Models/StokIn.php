@@ -15,7 +15,6 @@ class StokIn extends Model
     protected $fillable = [
         'id_produk',
         'stokin_kuantitas',
-        'stokin_spesifikasi',
         'stokin_nopomo',
         'stokin_digunakan',
         'stokin_harga_produk',

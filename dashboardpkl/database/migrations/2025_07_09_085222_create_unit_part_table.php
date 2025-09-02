@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('unit_part', function (Blueprint $table) {
             $table->id('id_unitpart');
             $table->unsignedBigInteger('id_unit');
-            $table->string('id_part');
+            $table->unsignedBigInteger('id_part');
             $table->integer('stok');
             $table->timestamps();
 

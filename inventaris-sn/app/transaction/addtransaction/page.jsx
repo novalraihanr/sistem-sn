@@ -2,7 +2,7 @@
 
 import Sidebar from "@/components/Sidebar";
 import { useRouter } from "next/navigation";
-import { useState, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import APIEndpoint from "@/app/api/api";
 import Swal from "sweetalert2";
 
@@ -19,9 +19,15 @@ export default function AddTransaction() {
   // Product state
   const [produkList, setProdukList] = useState([]);
   const [partSuggestions, setPartSuggestions] = useState([]);
+  const [kategoriSuggestions, setKategoriSuggestions] = useState([]);
 
   // Loading state
   const [loading, setLoading] = useState(false);
+
+  // Refs for timers
+  const vendorSearchTimer = useRef(null);
+  const partSearchTimers = useRef([]);
+  const kategoriSearchTimers = useRef([]);
 
   // --- Vendor Autocomplete ---
   const handleVendorSearch = async (name) => {
@@ -41,7 +47,19 @@ export default function AddTransaction() {
     const name = e.target.value;
     setVendorName(name);
     setSelectedVendor(null);
-    handleVendorSearch(name);
+
+    clearTimeout(vendorSearchTimer.current);
+    vendorSearchTimer.current = setTimeout(() => {
+      handleVendorSearch(name);
+    }, 300);
+
+    if (name === "") {
+      setProdukList([]);
+      setPartSuggestions([]);
+      setVendorContact("");
+      setVendorAddress("");
+      setVendorSuggestions([]);
+    }
   };
 
   const handleVendorSelect = (vendor) => {
@@ -53,9 +71,10 @@ export default function AddTransaction() {
   };
 
   const handleVendorInputBlur = () => {
+    clearTimeout(vendorSearchTimer.current);
     setTimeout(() => {
       setVendorSuggestions([]);
-    }, 100);
+    }, 150);
   };
 
   // --- Part Autocomplete ---
@@ -69,7 +88,6 @@ export default function AddTransaction() {
 
     try {
       let suggestions = [];
-      // First, try to get parts associated with the selected vendor
       if (selectedVendor) {
         const res = await APIEndpoint.get(
           `/api/vendor/${selectedVendor.id_vendor}/parts/search/${partName}`
@@ -77,13 +95,11 @@ export default function AddTransaction() {
         suggestions = res.data;
       }
 
-      // If no suggestions from vendor-specific parts, or no vendor selected, search general parts
       if (suggestions.length === 0) {
         try {
           const res = await APIEndpoint.get(`/api/part/search/${partName}`);
           suggestions = res.data;
         } catch (error) {
-          // It's possible the general search fails or returns nothing, which is fine.
           console.error("Error searching general parts:", error);
         }
       }
@@ -99,29 +115,75 @@ export default function AddTransaction() {
     }
   };
 
+  // --- Kategori Autocomplete ---
+  const handleKategoriSearch = async (index, kategoriName) => {
+    if (kategoriName.length < 1) {
+      const newSuggestions = [...kategoriSuggestions];
+      newSuggestions[index] = [];
+      setKategoriSuggestions(newSuggestions);
+      return;
+    }
+    try {
+      const res = await APIEndpoint.get(
+        `/api/kategori-part/search/${kategoriName}`
+      );
+      const newSuggestions = [...kategoriSuggestions];
+      newSuggestions[index] = res.data;
+      setKategoriSuggestions(newSuggestions);
+    } catch (error) {
+      console.error("Error searching for categories:", error);
+      const newSuggestions = [...kategoriSuggestions];
+      newSuggestions[index] = [];
+      setKategoriSuggestions(newSuggestions);
+    }
+  };
+
+  const handleKategoriSelect = (index, kategori) => {
+    handleChange(index, "kategori_name", kategori.nama_kategori);
+    const newSuggestions = [...kategoriSuggestions];
+    newSuggestions[index] = [];
+    setKategoriSuggestions(newSuggestions);
+  };
+
   const handlePartInputChange = (index, value) => {
     const newList = [...produkList];
     newList[index].part_name = value;
     setProdukList(newList);
-    handlePartSearch(index, value);
+
+    clearTimeout(partSearchTimers.current[index]);
+    partSearchTimers.current[index] = setTimeout(() => {
+      handlePartSearch(index, value);
+    }, 300);
+  };
+
+  const handleKategoriInputChange = (index, value) => {
+    const newList = [...produkList];
+    newList[index].kategori_name = value;
+    setProdukList(newList);
+
+    clearTimeout(kategoriSearchTimers.current[index]);
+    kategoriSearchTimers.current[index] = setTimeout(() => {
+      handleKategoriSearch(index, value);
+    }, 300);
   };
 
   const handlePartSelect = (index, part) => {
     const newList = [...produkList];
-    const isVendorPart = part.pivot;
+
+    const merk = part.pivot?.merk_part || part.merk_part || "";
+    const satuan = part.pivot?.satuan_part || part.satuan_part || "";
+    const harga = part.pivot?.harga_part || part.harga_part || 0;
+    const total = harga * newList[index].jumlah;
 
     newList[index] = {
       ...newList[index],
       part_name: part.nama_part,
       kategori_name: part.kategori_part?.nama_kategori || "",
-      kode_part: part.id_part,
-      merk_part: isVendorPart ? part.pivot.merk_part : "",
-      satuan_part: isVendorPart ? part.pivot.satuan_part : "",
-      harga_part: isVendorPart ? part.pivot.harga_part : 0,
-      total_harga: isVendorPart
-        ? newList[index].jumlah * part.pivot.harga_part
-        : 0,
-      originalData: part, // Store original data for comparison on save
+      merk_part: merk,
+      satuan_part: satuan,
+      harga_part: harga,
+      total_harga: total,
+      originalData: part,
     };
     setProdukList(newList);
     const newSuggestions = [...partSuggestions];
@@ -130,12 +192,25 @@ export default function AddTransaction() {
   };
 
   const handlePartInputBlur = (index) => {
-    // A small delay to allow click on suggestion to register before blur clears it
+    clearTimeout(partSearchTimers.current[index]);
     setTimeout(() => {
       const newSuggestions = [...partSuggestions];
-      newSuggestions[index] = [];
-      setPartSuggestions(newSuggestions);
-    }, 100);
+      if (newSuggestions[index]) {
+        newSuggestions[index] = [];
+        setPartSuggestions(newSuggestions);
+      }
+    }, 150);
+  };
+
+  const handleKategoriInputBlur = (index) => {
+    clearTimeout(kategoriSearchTimers.current[index]);
+    setTimeout(() => {
+      const newSuggestions = [...kategoriSuggestions];
+      if (newSuggestions[index]) {
+        newSuggestions[index] = [];
+        setKategoriSuggestions(newSuggestions);
+      }
+    }, 150);
   };
 
   // --- General Table Handlers ---
@@ -145,7 +220,6 @@ export default function AddTransaction() {
       {
         part_name: "",
         kategori_name: "",
-        kode_part: "",
         merk_part: "",
         harga_part: 0,
         jumlah: 1,
@@ -187,14 +261,12 @@ export default function AddTransaction() {
 
   // --- Save Transaction ---
   const handleSaveTransaction = async () => {
-    setLoading(true); // Mulai loading
+    setLoading(true);
     let vendorId;
 
     try {
-      // 1. Handle Vendor
       if (selectedVendor) {
         vendorId = selectedVendor.id_vendor;
-        // Optional: Check for changes in vendor details and update if necessary
         if (
           vendorName !== selectedVendor.nama_vendor ||
           vendorContact !== selectedVendor.kontak_vendor ||
@@ -236,132 +308,16 @@ export default function AddTransaction() {
         return;
       }
 
-      // 2. Handle Produk
-      const transactionItems = [];
-      for (const produk of produkList) {
-        let partId = produk.kode_part;
-        const originalData = produk.originalData;
+      const transactionItems = produkList.map((produk) => ({
+        part_name: produk.part_name,
+        kategori_name: produk.kategori_name,
+        satuan_part: produk.satuan_part,
+        jumlah: produk.jumlah,
+        total_harga: produk.total_harga,
+        merk_part: produk.merk_part,
+        harga_part: produk.harga_part,
+      }));
 
-        if (originalData) {
-          // Part dari suggestion, cek apakah ada perubahan
-          const partUpdateData = {};
-          const pivotUpdateData = {};
-
-          if (produk.part_name !== originalData.nama_part)
-            partUpdateData.nama_part = produk.part_name;
-          if (
-            produk.kategori_name !== originalData.kategori_part?.nama_kategori
-          )
-            partUpdateData.kategori_name = produk.kategori_name;
-          if (produk.merk_part !== originalData.pivot?.merk_part)
-            pivotUpdateData.merk_part = produk.merk_part;
-          if (produk.satuan_part !== originalData.pivot?.satuan_part)
-            pivotUpdateData.satuan_part = produk.satuan_part;
-          if (produk.harga_part !== originalData.pivot?.harga_part)
-            pivotUpdateData.harga_part = produk.harga_part;
-
-          if (
-            Object.keys(partUpdateData).length > 0 ||
-            Object.keys(pivotUpdateData).length > 0
-          ) {
-            await APIEndpoint.put(
-              `/api/vendor-part/changeharga/${vendorId}/${partId}`,
-              { ...partUpdateData, ...pivotUpdateData }
-            );
-          }
-        } else {
-          // Part baru/manual
-          if (!produk.kode_part) {
-            Swal.fire({
-              title: "Peringatan",
-              text: "Kode Part harus diisi untuk produk baru.",
-              icon: "warning",
-              confirmButtonText: "OK",
-            });
-            setLoading(false);
-            return;
-          }
-
-          let partExists = false;
-          try {
-            const checkPartRes = await APIEndpoint.get(
-              `/api/part/${produk.kode_part}`
-            );
-            partId = checkPartRes.data.id_part;
-            partExists = true;
-
-            // update jika berbeda
-            const partUpdateData = {};
-            if (produk.part_name !== checkPartRes.data.nama_part)
-              partUpdateData.nama_part = produk.part_name;
-            if (
-              produk.kategori_name !==
-              checkPartRes.data.kategori_part?.nama_kategori
-            )
-              partUpdateData.kategori_name = produk.kategori_name;
-
-            if (Object.keys(partUpdateData).length > 0) {
-              await APIEndpoint.put(`/api/part/${partId}`, partUpdateData);
-            }
-          } catch (error) {
-            if (error.response && error.response.status === 404) {
-              partExists = false;
-            } else {
-              throw error;
-            }
-          }
-
-          if (!partExists) {
-            const kategoriRes = await APIEndpoint.post(
-              "/api/kategori-part/first-or-create",
-              {
-                nama_kategori: produk.kategori_name,
-              }
-            );
-            const idKategoriPart = kategoriRes.data.id_kategori_part;
-
-            const partRes = await APIEndpoint.post("/api/part", {
-              nama_part: produk.part_name,
-              id_kategori_part: idKategoriPart,
-              id_part: produk.kode_part,
-            });
-            partId = partRes.data.id_part;
-          }
-
-          // Vendor-part relation
-          try {
-            await APIEndpoint.put(
-              `/api/vendor-part/changeharga/${vendorId}/${partId}`,
-              {
-                merk_part: produk.merk_part,
-                harga_part: produk.harga_part,
-                satuan_part: produk.satuan_part,
-              }
-            );
-          } catch (error) {
-            if (error.response && error.response.status === 404) {
-              await APIEndpoint.post(`/api/vendor-part/${vendorId}/part`, {
-                id_part: partId,
-                merk_part: produk.merk_part,
-                harga_part: produk.harga_part,
-                satuan_part: produk.satuan_part,
-              });
-            } else {
-              throw error;
-            }
-          }
-        }
-
-        transactionItems.push({
-          part_id: partId,
-          jumlah: produk.jumlah,
-          total_harga: produk.total_harga,
-          merk_part: produk.merk_part,
-          harga_part: produk.harga_part,
-        });
-      }
-
-      // 3. Simpan transaksi
       await APIEndpoint.post("/api/transaksi-vendor/multi", {
         vendor_id: vendorId,
         items: transactionItems,
@@ -422,7 +378,6 @@ export default function AddTransaction() {
         )}
         <section>
           <div className="bg-white rounded-lg shadow-sm w-full p-4">
-            {/* Header */}
             <div className="mb-5 flex justify-between items-center">
               <h2 className="text-xl font-semibold text-[#383E49]">
                 Transaksi
@@ -439,13 +394,11 @@ export default function AddTransaction() {
                 Tambah Transaksi
               </button>
             </div>
-            {/* Detail Transaksi */}
             <div className="p-2 mb-8">
               <h3 className="font-bold text-[#48505E] mb-5">
                 Detail Transaksi
               </h3>
               <div className="grid gap-4 text-sm text-[#383E49]">
-                {/* Vendor Name with Autocomplete */}
                 <div className="flex items-center gap-4 mb-2 relative">
                   <p className="w-40 text-gray-500 capitalize">Nama Vendor</p>
                   <div className="w-[450px]">
@@ -458,21 +411,21 @@ export default function AddTransaction() {
                       className="w-full border rounded-md px-2 py-1"
                     />
                     {vendorSuggestions.length > 0 && (
-                      <ul className="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto">
+                      <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto custom-scrollbar">
                         {vendorSuggestions.map((v) => (
                           <li
                             key={v.id_vendor}
                             onClick={() => handleVendorSelect(v)}
-                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                            className="p-2 cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150 ease-in-out"
                           >
-                            {v.nama_vendor}
+                            <div className="font-medium text-gray-800">{v.nama_vendor}</div>
+                            {v.kontak_vendor && <div className="text-xs text-gray-500">Kontak: {v.kontak_vendor}</div>}
                           </li>
                         ))}
                       </ul>
                     )}
                   </div>
                 </div>
-                {/* Other Vendor Details */}
                 <div className="flex items-center gap-4 mb-2">
                   <p className="w-40 text-gray-500 capitalize">Nomor Kontak</p>
                   <input
@@ -492,7 +445,6 @@ export default function AddTransaction() {
                 </div>
               </div>
             </div>
-            {/* Produk Detail */}
             <div className="p-2">
               <h3 className="font-bold text-[#48505E] mb-4">Produk Details</h3>
               <div className="overflow-x-auto">
@@ -501,7 +453,6 @@ export default function AddTransaction() {
                     <tr>
                       <th className="px-4 py-2 min-w-[180px]">Nama Part</th>
                       <th className="px-4 py-2 min-w-[140px]">Kategori</th>
-                      <th className="px-4 py-2 min-w-[120px]">Kode</th>
                       <th className="px-4 py-2 min-w-[140px]">Merk</th>
                       <th className="px-4 py-2 min-w-[120px]">Satuan</th>
                       <th className="px-4 py-2 min-w-[120px]">Harga</th>
@@ -513,7 +464,6 @@ export default function AddTransaction() {
                   <tbody>
                     {produkList.map((produk, index) => (
                       <tr key={index} className="bg-white">
-                        {/* Nama Part */}
                         <td className="px-4 py-2 relative">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
@@ -533,22 +483,27 @@ export default function AddTransaction() {
                             />
                           </div>
                           {partSuggestions[index]?.length > 0 && (
-                            <ul className="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto">
+                            <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto custom-scrollbar">
                               {partSuggestions[index].map((p) => (
                                 <li
                                   key={p.id_part}
                                   onClick={() => handlePartSelect(index, p)}
-                                  className="p-2 hover:bg-gray-100 cursor-pointer"
+                                  className="p-2 cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150 ease-in-out"
                                 >
-                                  {p.nama_part}
+                                  <div className="font-medium text-gray-800">{p.nama_part}</div>
+                                  {p.kategori_part?.nama_kategori && (
+                                    <div className="text-xs text-gray-500">Kategori: {p.kategori_part.nama_kategori}</div>
+                                  )}
+                                  {p.pivot?.harga_part && (
+                                    <div className="text-xs text-gray-500">Harga: Rp {p.pivot.harga_part.toLocaleString("id-ID")}</div>
+                                  )}
                                 </li>
                               ))}
                             </ul>
                           )}
                         </td>
 
-                        {/* Kategori */}
-                        <td className="px-4 py-2">
+                        <td className="px-4 py-2 relative">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
@@ -560,36 +515,26 @@ export default function AddTransaction() {
                                 handleArrowNavigation(e, index, 1)
                               }
                               onChange={(e) =>
-                                handleChange(
-                                  index,
-                                  "kategori_name",
-                                  e.target.value
-                                )
+                                handleKategoriInputChange(index, e.target.value)
                               }
+                              onBlur={() => handleKategoriInputBlur(index)}
                             />
                           </div>
+                          {kategoriSuggestions[index]?.length > 0 && (
+                            <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto custom-scrollbar">
+                              {kategoriSuggestions[index].map((k) => (
+                                <li
+                                  key={k.id_kategori_part}
+                                  onClick={() => handleKategoriSelect(index, k)}
+                                  className="p-2 cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150 ease-in-out"
+                                >
+                                  <div className="font-medium text-gray-800">{k.nama_kategori}</div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </td>
 
-                        {/* Kode */}
-                        <td className="px-4 py-2">
-                          <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
-                            <input
-                              type="text"
-                              className="w-full min-w-[120px] px-2 py-1 border-none focus:outline-none bg-transparent"
-                              value={produk.kode_part}
-                              data-row={index}
-                              data-col={2}
-                              onKeyDown={(e) =>
-                                handleArrowNavigation(e, index, 2)
-                              }
-                              onChange={(e) =>
-                                handleChange(index, "kode_part", e.target.value)
-                              }
-                            />
-                          </div>
-                        </td>
-
-                        {/* Merk */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
@@ -597,9 +542,9 @@ export default function AddTransaction() {
                               className="w-full min-w-[140px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.merk_part}
                               data-row={index}
-                              data-col={3}
+                              data-col={2}
                               onKeyDown={(e) =>
-                                handleArrowNavigation(e, index, 3)
+                                handleArrowNavigation(e, index, 2)
                               }
                               onChange={(e) =>
                                 handleChange(index, "merk_part", e.target.value)
@@ -608,7 +553,6 @@ export default function AddTransaction() {
                           </div>
                         </td>
 
-                        {/* Satuan */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
@@ -616,9 +560,9 @@ export default function AddTransaction() {
                               className="w-full min-w-[120px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={produk.satuan_part}
                               data-row={index}
-                              data-col={4}
+                              data-col={3}
                               onKeyDown={(e) =>
-                                handleArrowNavigation(e, index, 4)
+                                handleArrowNavigation(e, index, 3)
                               }
                               onChange={(e) =>
                                 handleChange(
@@ -631,7 +575,6 @@ export default function AddTransaction() {
                           </div>
                         </td>
 
-                        {/* Harga */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
@@ -639,9 +582,9 @@ export default function AddTransaction() {
                               className="w-full min-w-[120px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={String(produk.harga_part)}
                               data-row={index}
-                              data-col={5}
+                              data-col={4}
                               onKeyDown={(e) =>
-                                handleArrowNavigation(e, index, 5)
+                                handleArrowNavigation(e, index, 4)
                               }
                               onChange={(e) =>
                                 handleChange(
@@ -654,7 +597,6 @@ export default function AddTransaction() {
                           </div>
                         </td>
 
-                        {/* Jumlah */}
                         <td className="px-4 py-2">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
@@ -662,9 +604,9 @@ export default function AddTransaction() {
                               className="w-full min-w-[100px] px-2 py-1 border-none focus:outline-none bg-transparent"
                               value={String(produk.jumlah)}
                               data-row={index}
-                              data-col={6}
+                              data-col={5}
                               onKeyDown={(e) =>
-                                handleArrowNavigation(e, index, 6)
+                                handleArrowNavigation(e, index, 5)
                               }
                               onChange={(e) =>
                                 handleChange(index, "jumlah", e.target.value)
@@ -673,12 +615,10 @@ export default function AddTransaction() {
                           </div>
                         </td>
 
-                        {/* Total */}
                         <td className="px-4 py-2 min-w-[140px]">
                           Rp {produk.total_harga.toLocaleString("id-ID")}
                         </td>
 
-                        {/* Aksi */}
                         <td className="px-4 py-2 min-w-[100px]">
                           <button
                             onClick={() => handleHapusProduk(index)}
@@ -699,13 +639,12 @@ export default function AddTransaction() {
                           + Tambah Produk
                         </button>
                       </td>
-                      <td colSpan={8}></td>
+                      <td colSpan={7}></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              {/* Total Harga */}
               <div className="flex justify-end mt-6 text-sm p-2">
                 <p className="text-gray-500 mr-2">Total Harga :</p>
                 <p className="font-semibold text-[#383E49]">
@@ -714,7 +653,6 @@ export default function AddTransaction() {
               </div>
             </div>
 
-            {/* Batal dan Tambah */}
             <div className="flex justify-end p-2 gap-x-3 mt-5">
               <button
                 onClick={() => router.push("/transaction")}

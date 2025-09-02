@@ -29,12 +29,15 @@ export default function TabelInv() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [categorySuggestions, setCategorySuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [newItem, setNewItem] = useState({
     nama_produk: "",
     nama_kategori: "",
     stok_awal: 0,
     produk_satuan: "",
     produk_minimum_stok: 0,
+    spesifikasi: "",
   });
 
   // Fetch Data from API
@@ -73,6 +76,9 @@ export default function TabelInv() {
     "Semua Kategori",
     ...new Set(inventoryData.map((item) => item.kategori_inv.nama_kategori)),
   ];
+  const existingCategories = [
+    ...new Set(inventoryData.map((item) => item.kategori_inv.nama_kategori)),
+  ];
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
   useEffect(() => {
@@ -91,6 +97,24 @@ export default function TabelInv() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewItem({ ...newItem, [name]: value });
+
+    if (name === "nama_kategori") {
+      if (value.trim() !== "") {
+        const filtered = existingCategories.filter((cat) =>
+          cat.toLowerCase().includes(value.toLowerCase())
+        );
+        setCategorySuggestions(filtered);
+        setShowSuggestions(true);
+      } else {
+        setCategorySuggestions([]);
+        setShowSuggestions(false);
+      }
+    }
+  };
+
+  const handleSuggestionClick = (category) => {
+    setNewItem({ ...newItem, nama_kategori: category });
+    setShowSuggestions(false);
   };
 
   const handleAddItem = async () => {
@@ -100,6 +124,7 @@ export default function TabelInv() {
       "stok_awal",
       "produk_satuan",
       "produk_minimum_stok",
+      "spesifikasi",
     ];
     const errors = {};
 
@@ -121,6 +146,7 @@ export default function TabelInv() {
         stok_awal: parseInt(newItem.stok_awal),
         produk_satuan: newItem.produk_satuan,
         produk_minimum_stok: parseInt(newItem.produk_minimum_stok),
+        spesifikasi: newItem.spesifikasi,
       });
       Swal.fire({
         title: "Berhasil!",
@@ -139,6 +165,7 @@ export default function TabelInv() {
         stok_awal: 0,
         produk_satuan: "",
         produk_minimum_stok: 0,
+        spesifikasi: "",
       });
       fetchInventory();
     } catch (error) {
@@ -151,6 +178,33 @@ export default function TabelInv() {
       });
     }
   };
+
+  const formFields = [
+    {
+      label: "Stok Awal",
+      name: "stok_awal",
+      placeholder: "Masukan stok awal",
+      type: "number",
+    },
+    {
+      label: "Satuan Produk",
+      name: "produk_satuan",
+      placeholder: "Masukan satuan produk",
+      type: "text",
+    },
+    {
+      label: "Minimum Stok",
+      name: "produk_minimum_stok",
+      placeholder: "Masukan minimum stok",
+      type: "number",
+    },
+    {
+      label: "Spesifikasi",
+      name: "spesifikasi",
+      placeholder: "Masukan spesifikasi produk",
+      type: "text",
+    },
+  ];
 
   return (
     <div className="bg-white rounded-lg shadow-sm w-full">
@@ -264,13 +318,13 @@ export default function TabelInv() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-4 text-gray-500">
+                    <td colSpan={10} className="text-center py-4 text-gray-500">
                       Loading...
                     </td>
                   </tr>
                 ) : paginatedData.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-4 text-gray-500">
+                    <td colSpan={10} className="text-center py-4 text-gray-500">
                       Tidak ada data ditemukan
                     </td>
                   </tr>
@@ -300,7 +354,7 @@ export default function TabelInv() {
                       <td className="py-2 px-4 text-center">
                         {item.produk_minimum_stok}
                       </td>
-                      <td className="py-2 px-4">Spesifikasi Dummy</td>
+                      <td className="py-2 px-4">{item.spesifikasi}</td>
                       <td className="py-2 px-4">
                         {getStatus(item.produk_status)}
                       </td>
@@ -353,44 +407,72 @@ export default function TabelInv() {
                   }}
                   className="space-y-4"
                 >
-                  {[
-                    {
-                      label: "Nama Produk",
-                      name: "nama_produk",
-                      placeholder: "Masukan nama produk",
-                      type: "text",
-                    },
-                    {
-                      label: "Nama Kategori",
-                      name: "nama_kategori",
-                      placeholder: "Masukan nama kategori",
-                      type: "text",
-                    },
-                    {
-                      label: "Stok Awal",
-                      name: "stok_awal",
-                      placeholder: "Masukan stok awal",
-                      type: "number",
-                    },
-                    {
-                      label: "Satuan Produk",
-                      name: "produk_satuan",
-                      placeholder: "Masukan satuan produk",
-                      type: "text",
-                    },
-                    {
-                      label: "Minimum Stok",
-                      name: "produk_minimum_stok",
-                      placeholder: "Masukan minimum stok",
-                      type: "number",
-                    },
-                    {
-                      label: "Spesifikasi",
-                      name: "spesifikasi",
-                      placeholder: "Masukan spesifikasi produk",
-                      type: "text",
-                    },
-                  ].map((field) => (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm text-gray-700">Nama Produk</label>
+                    <input
+                      type="text"
+                      name="nama_produk"
+                      placeholder="Masukan nama produk"
+                      value={newItem.nama_produk || ""}
+                      onChange={handleInputChange}
+                      required
+                      className={`border px-3 py-2 rounded-md text-sm focus:outline-none focus:ring ${
+                        formErrors.nama_produk
+                          ? "border-red-500"
+                          : "border-gray-300 focus:border-blue-300"
+                      }`}
+                    />
+                    {formErrors.nama_produk && (
+                      <span className="text-red-500 text-xs">
+                        {formErrors.nama_produk}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative flex flex-col gap-1">
+                    <label className="text-sm text-gray-700">
+                      Nama Kategori
+                    </label>
+                    <input
+                      type="text"
+                      name="nama_kategori"
+                      placeholder="Masukan nama kategori"
+                      value={newItem.nama_kategori || ""}
+                      onChange={handleInputChange}
+                      onFocus={() => {
+                        if (newItem.nama_kategori) setShowSuggestions(true);
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => setShowSuggestions(false), 150);
+                      }}
+                      required
+                      className={`border px-3 py-2 rounded-md text-sm focus:outline-none focus:ring ${
+                        formErrors.nama_kategori
+                          ? "border-red-500"
+                          : "border-gray-300 focus:border-blue-300"
+                      }`}
+                    />
+                    {formErrors.nama_kategori && (
+                      <span className="text-red-500 text-xs">
+                        {formErrors.nama_kategori}
+                      </span>
+                    )}
+                    {showSuggestions && categorySuggestions.length > 0 && (
+                      <ul className="absolute top-full z-20 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
+                        {categorySuggestions.map((cat) => (
+                          <li
+                            key={cat}
+                            className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                            onMouseDown={() => handleSuggestionClick(cat)}
+                          >
+                            {cat}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {formFields.map((field) => (
                     <div key={field.name} className="flex flex-col gap-1">
                       <label className="text-sm text-gray-700">
                         {field.label}

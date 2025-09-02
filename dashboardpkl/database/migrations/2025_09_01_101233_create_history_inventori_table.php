@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inventori', function (Blueprint $table) {
+        Schema::create('history_inventori', function (Blueprint $table) {
             $table->id("id_produk");
             $table->string("nama_produk");
-            $table->unsignedBigInteger("id_kategori");
+            $table->string("kategori");
             $table->string("spesifikasi")->default('-');
             $table->integer("stok_awal");
             $table->integer("stok_akhir");
@@ -24,9 +24,6 @@ return new class extends Migration
             $table->integer("produk_minimum_stok");
             $table->enum("produk_status", ["Cukup", "By Order", "Need Order"]);
             $table->date("bulan_sekarang");
-            $table->timestamps();
-
-            $table->foreign('id_kategori')->references('id_kategori')->on('kategori_inv')->onDelete('cascade');
         });
     }
 
@@ -35,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inventori');
+        Schema::dropIfExists('history_inventori');
     }
 };

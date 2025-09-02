@@ -84,7 +84,6 @@ class CsvDataSeeder extends Seeder
                         StokIn::create([
                             'id_produk' => $record['id_produk'], // Using id_produk from Inventori model
                             'stokin_kuantitas' => $record['stokin_kuantitas'],
-                            'stokin_spesifikasi' => $record['stokin_spesifikasi'],
                             'stokin_nopomo' => $record['stokin_nopomo'],
                             'stokin_digunakan' => $record['stokin_digunakan'],
                             'stokin_harga_produk' => $record['stokin_harga_produk'],
@@ -108,7 +107,6 @@ class CsvDataSeeder extends Seeder
                         StokOut::create([
                             'id_produk' => $record['id_produk'], // Using id_produk from Inventori model
                             'stokout_kuantitas' => $record['stokout_kuantitas'],
-                            'stokout_spesifikasi' => $record['stokout_spesifikasi'],
                             'stokout_digunakan' => $record['stokout_digunakan'],
                             'stokout_divisi' => $record['stokout_divisi'],
                             'stokout_keterangan' => $record['stokout_keterangan'],

@@ -130,4 +130,10 @@ class KategoriPartController extends Controller
 
         return response()->json($kategoriPart->load('parts'), $kategoriPart->wasRecentlyCreated ? 201 : 200);
     }
+
+    public function searchByName($name)
+    {
+        $kategoriPart = KategoriPart::where('nama_kategori', 'like', '%' . $name . '%')->get();
+        return response()->json($kategoriPart);
+    }
 }

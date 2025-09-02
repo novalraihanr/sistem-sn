@@ -59,7 +59,7 @@ class StokOutController extends Controller
         );
 
         // Check if there's enough stock before creating stok-out
-        $potentialStokAkhir = ($inventori->stok_in == 0 ? $inventori->stok_awal : $inventori->stok_in) - ($inventori->stok_out + $validated['stokout_kuantitas']);
+        $potentialStokAkhir = ($inventori->stok_awal + $inventori->stok_in) - ($inventori->stok_out + $validated['stokout_kuantitas']);
         if ($potentialStokAkhir < 0) {
             return response()->json(['message' => 'Stok tidak cukup untuk melakukan pengeluaran ini.'], 400);
         }
@@ -108,7 +108,6 @@ class StokOutController extends Controller
         $validated = $request->validate([
             'id_produk' => 'sometimes|required|exists:inventori,id_produk',
             'stokout_kuantitas' => 'sometimes|required|integer|min:1',
-            'stokout_spesifikasi' => 'nullable|string|max:255',
             'stokout_digunakan' => 'sometimes|required|string|max:255',
             'stokout_divisi' => 'sometimes|required|string|max:255',
             'stokout_keterangan' => 'sometimes|required|string|max:255',
@@ -126,8 +125,10 @@ class StokOutController extends Controller
         $inventori->stok_out = $inventori->stok_out - $oldKuantitas + $stokOut->stokout_kuantitas;
 
         // Check if there's enough stock after the update
-        $potentialStokAkhir = ($inventori->stok_in == 0 ? $inventori->stok_awal : $inventori->stok_in) - $inventori->stok_out;
+        $potentialStokAkhir = $inventori->stok_awal + $inventori->stok_in - $inventori->stok_out;
         if ($potentialStokAkhir < 0) {
+            // Revert the change before failing
+            $inventori->stok_out = $inventori->stok_out + $oldKuantitas - $stokOut->stokout_kuantitas;
             return response()->json(['message' => 'Stok tidak cukup setelah perubahan kuantitas pengeluaran.'], 400);
         }
 
@@ -163,16 +164,16 @@ class StokOutController extends Controller
      */
     protected function updateInventoriStok(Inventori $inventori)
     {
-        if ($inventori->stok_in == 0) {
-            $inventori->stok_akhir = $inventori->stok_awal - $inventori->stok_out;
-        } else {
-            $inventori->stok_akhir = $inventori->stok_in - $inventori->stok_out;
-        }
+        // Correctly calculate stok_akhir
+        $inventori->stok_akhir = $inventori->stok_awal + $inventori->stok_in - $inventori->stok_out;
 
-        if ($inventori->stok_akhir <= $inventori->produk_minimum_stok) {
+        // Update produk_status based on the new stok_akhir
+        if ($inventori->stok_akhir <= $inventori->produk_minimum_stok + 2) {
             $inventori->produk_status = 'Need Order';
-        } else {
+        } elseif ($inventori->stok_akhir > $inventori->produk_minimum_stok) {
             $inventori->produk_status = 'Cukup';
+        } else {
+            $inventori->produk_status = 'By Order';
         }
 
         $inventori->save();

@@ -16,16 +16,19 @@ export default function TabelStockOut() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
-    qty: "",
-    satuan: "",
-    spesifikasi: "",
-    nama: "",
-    divisi: "",
-    keterangan: "",
-    tanggal: "",
+    nama_produk: "",
+    nama_kategori: "",
+    stokout_kuantitas: "",
+    produk_satuan: "",
+    stokout_spesifikasi: "",
+    stokout_digunakan: "",
+    stokout_divisi: "",
+    stokout_keterangan: "",
+    stokin_tanggal: "",
+    produk_minimum_stok: 0,
   });
   const [productSuggestions, setProductSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -57,7 +60,6 @@ export default function TabelStockOut() {
     fetchData();
   }, []);
 
-  // Debounce function
   const debounce = (func, delay) => {
     let timeout;
     return function (...args) {
@@ -67,82 +69,57 @@ export default function TabelStockOut() {
     };
   };
 
-  // Fetch product data
   const fetchProductData = async (productName) => {
+    if (!productName) {
+      setProductSuggestions([]);
+      return;
+    }
     try {
       const res = await APIEndpoint.get("/api/inventori/find-by-name", {
         params: { nama_produk: productName },
       });
-      setProductSuggestions(res.data); // Set suggestions
-      const fetchedProduct = res.data[0]; // Get the first item from the array
-      if (fetchedProduct) {
-        setFormData((prev) => ({
-          ...prev,
-          satuan: fetchedProduct.produk_satuan || "",
-          nama_kategori: fetchedProduct.kategori_inv?.nama_kategori || "",
-          produk_minimum_stok: fetchedProduct.produk_minimum_stok || "",
-        }));
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          satuan: "",
-          nama_kategori: "",
-          produk_minimum_stok: "",
-        }));
-      }
+      setProductSuggestions(res.data || []);
     } catch (error) {
-      if (error.response && error.response.status === 404) {
-        // Product not found, clear relevant fields
-        setFormData((prev) => ({
-          ...prev,
-          satuan: "",
-          nama_kategori: "",
-          produk_minimum_stok: "",
-        }));
-        setProductSuggestions([]); // Clear suggestions on 404
-      } else {
-        console.error("Error fetching product by name:", error);
-      }
+      console.error("Error fetching product by name:", error);
+      setProductSuggestions([]);
     }
   };
 
-  // Debounced version of fetchProductData
-  const debouncedFetchProductData = debounce(fetchProductData, 500); // 500ms debounce
+  const debouncedFetchProductData = debounce(fetchProductData, 300);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (name === "name" && value.length > 2) {
-      debouncedFetchProductData(value);
+    if (name === "nama_produk") {
+      if (value) {
+        debouncedFetchProductData(value);
+        setShowSuggestions(true);
+      } else {
+        setShowSuggestions(false);
+      }
     }
   };
 
-  const formatTanggal = (input) => {
-    const [year, month, day] = input.split("-");
-    return `${day}-${month}-${year}`;
+  const handleSuggestionClick = (product) => {
+    setFormData((prev) => ({
+      ...prev,
+      nama_produk: product.nama_produk,
+      nama_kategori: product.kategori_inv?.nama_kategori || "",
+      produk_satuan: product.produk_satuan || "",
+      stokout_spesifikasi: product.spesifikasi || "",
+      produk_minimum_stok: product.produk_minimum_stok || 0,
+    }));
+    setShowSuggestions(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const payload = {
-        nama_produk: formData.name,
-        stokout_kuantitas: parseFloat(formData.qty),
-        stokout_spesifikasi: formData.spesifikasi,
-        stokout_digunakan: formData.nama,
-        stokout_divisi: formData.divisi,
-        stokout_keterangan: formData.keterangan,
-        stokin_tanggal: formData.tanggal,
-        // These fields are required by the backend but not directly from the form
-        // They will be derived or set to default values in the backend
-
-        nama_kategori: formData.nama_kategori,
-        produk_minimum_stok: formData.produk_minimum_stok,
-        produk_satuan: formData.satuan, // Use the satuan from the form
+        ...formData,
+        stokout_kuantitas: parseFloat(formData.stokout_kuantitas),
       };
-
       const res = await APIEndpoint.post("/api/stok-out", payload);
 
       const newStokOut = res.data;
@@ -169,82 +146,42 @@ export default function TabelStockOut() {
     }
   };
 
-  const handleProductInputBlur = () => {
-    setTimeout(() => {
-      setProductSuggestions([]);
-    }, 100);
-  };
-
-  const handleProductSelect = (product) => {
-    setFormData((prev) => ({
-      ...prev,
-      name: product.nama_produk,
-      satuan: product.produk_satuan || "",
-      nama_kategori: product.kategori_inv?.nama_kategori || "",
-      produk_minimum_stok: product.produk_minimum_stok || "",
-    }));
-    setProductSuggestions([]); // Clear suggestions after selection
-  };
-
-  // State filter
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedYear, setSelectedYear] = useState("all");
+  const [availableMonths, setAvailableMonths] = useState([]);
+  const [availableYears, setAvailableYears] = useState([]);
 
-  // Ambil bulan & tahun unik dari data
-  const monthsMap = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ];
+  useEffect(() => {
+    if (produkData.length > 0) {
+      const years = [
+        ...new Set(
+          produkData.map((item) => new Date(item.stokin_tanggal).getFullYear())
+        ),
+      ].sort((a, b) => b - a);
+      setAvailableYears(years);
 
-  // Tahun unik
-  const years = [
-    ...new Set(
-      produkData.map((item) => new Date(item.stokin_tanggal).getFullYear())
-    ),
-  ].sort((a, b) => b - a);
+      const months = [
+        ...new Set(
+          produkData.map((item) => new Date(item.stokin_tanggal).getMonth())
+        ),
+      ].sort((a, b) => a - b);
+      setAvailableMonths(months);
+    }
+  }, [produkData]);
 
-  // Bulan unik (dari semua data, tapi tetap nama bulan urut)
-  const availableMonths = [
-    ...new Set(
-      produkData.map((item) => new Date(item.stokin_tanggal).getMonth() + 1)
-    ),
-  ]
-    .sort((a, b) => a - b)
-    .map((monthNum) => ({
-      value: String(monthNum),
-      label: monthsMap[monthNum - 1],
-    }));
-
-  // Filter data
   const filteredData = produkData
     .filter((item) => {
       const date = new Date(item.stokin_tanggal);
-      const month = date.getMonth() + 1;
-      const year = date.getFullYear();
-
       const monthMatch =
-        selectedMonth === "all" || parseInt(selectedMonth) === month;
+        selectedMonth === "all" || date.getMonth() === parseInt(selectedMonth);
       const yearMatch =
-        selectedYear === "all" || parseInt(selectedYear) === year;
-
-      return (
+        selectedYear === "all" || date.getFullYear() === parseInt(selectedYear);
+      const searchMatch =
         item.inventori &&
         item.inventori.nama_produk
           .toLowerCase()
-          .includes(searchQuery.toLowerCase()) &&
-        monthMatch &&
-        yearMatch
-      );
+          .includes(searchQuery.toLowerCase());
+      return monthMatch && yearMatch && searchMatch;
     })
     .sort((a, b) => new Date(b.stokin_tanggal) - new Date(a.stokin_tanggal));
 
@@ -263,16 +200,62 @@ export default function TabelStockOut() {
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      qty: "",
-      satuan: "",
-      spesifikasi: "",
-      nama: "",
-      divisi: "",
-      keterangan: "",
-      tanggal: "",
+      nama_produk: "",
+      nama_kategori: "",
+      stokout_kuantitas: "",
+      produk_satuan: "",
+      stokout_spesifikasi: "",
+      stokout_digunakan: "",
+      stokout_divisi: "",
+      stokout_keterangan: "",
+      stokin_tanggal: "",
+      produk_minimum_stok: 0,
     });
   };
+
+  const formFields = [
+    {
+      label: "Nama Kategori",
+      name: "nama_kategori",
+      placeholder: "Data dari produk",
+      readOnly: true,
+    },
+    {
+      label: "Kuantitas",
+      name: "stokout_kuantitas",
+      placeholder: "Masukkan kuantitas produk",
+      type: "number",
+    },
+    {
+      label: "Satuan",
+      name: "produk_satuan",
+      placeholder: "Data dari produk",
+      readOnly: true,
+    },
+    {
+      label: "Spesifikasi",
+      name: "stokout_spesifikasi",
+      placeholder: "Data dari produk",
+      readOnly: true,
+    },
+    {
+      label: "Nama",
+      name: "stokout_digunakan",
+      placeholder: "Masukkan nama pengambil stok",
+    },
+    {
+      label: "Divisi",
+      name: "stokout_divisi",
+      placeholder: "Masukkan divisi",
+    },
+    {
+      label: "Keterangan",
+      name: "stokout_keterangan",
+      placeholder: "Masukkan keterangan",
+      type: "text",
+    },
+    { label: "Tanggal", name: "stokin_tanggal", type: "date" },
+  ];
 
   return (
     <div className="bg-white rounded-lg shadow-sm w-full">
@@ -304,55 +287,54 @@ export default function TabelStockOut() {
               >
                 + Tambah Stock Out
               </button>
-
-              {/* Filter Bulan */}
-              <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
-                <img
-                  src="/icons/Dashboard/Filter.svg"
-                  alt="filter"
-                  className="w-4 h-4"
-                />
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => {
-                    setSelectedMonth(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center"
-                >
-                  <option value="all">Semua Bulan</option>
-                  {availableMonths.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-x-2">
+                <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
+                  <img
+                    src="/icons/Dashboard/Filter.svg"
+                    alt="filter"
+                    className="w-4 h-4"
+                  />
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => {
+                      setSelectedMonth(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center"
+                  >
+                    <option value="all">Semua Bulan</option>
+                    {availableMonths.map((month) => (
+                      <option key={month} value={month}>
+                        {new Date(0, month).toLocaleString("id-ID", {
+                          month: "long",
+                        })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
+                  <img
+                    src="/icons/Dashboard/Filter.svg"
+                    alt="filter"
+                    className="w-4 h-4"
+                  />
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => {
+                      setSelectedYear(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center"
+                  >
+                    <option value="all">Semua Tahun</option>
+                    {availableYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-
-              {/* Filter Tahun */}
-              <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
-                <img
-                  src="/icons/Dashboard/Filter.svg"
-                  alt="filter"
-                  className="w-4 h-4"
-                />
-                <select
-                  value={selectedYear}
-                  onChange={(e) => {
-                    setSelectedYear(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center"
-                >
-                  <option value="all">Semua Tahun</option>
-                  {years.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <button className="border border-[#D0D3D9] px-3 py-2 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100">
                 Download all
               </button>
@@ -376,15 +358,11 @@ export default function TabelStockOut() {
               <tbody>
                 {isLoading ? (
                   <tr className="text-center">
-                    <td colSpan="9" className="py-4">
-                      Loading...
-                    </td>
+                    <td colSpan="8" className="py-4">Loading...</td>
                   </tr>
                 ) : isDataEmpty ? (
                   <tr className="text-center">
-                    <td colSpan="9" className="py-4">
-                      Tidak ada data ditemukan
-                    </td>
+                    <td colSpan="8" className="py-4">Tidak ada data ditemukan</td>
                   </tr>
                 ) : (
                   paginatedData.map((item, index) => (
@@ -403,12 +381,8 @@ export default function TabelStockOut() {
                         {item.inventori?.nama_produk}
                       </td>
                       <td className="py-2 px-4">{item.stokout_kuantitas}</td>
-                      <td className="py-2 px-4">
-                        {item.stokout_spesifikasi || "-"}
-                      </td>
-                      <td className="py-2 px-4">
-                        {item.inventori?.produk_satuan}
-                      </td>
+                      <td className="py-2 px-4">{item.stokout_spesifikasi || "-"}</td>
+                      <td className="py-2 px-4">{item.inventori?.produk_satuan}</td>
                       <td className="py-2 px-4">{item.stokout_digunakan}</td>
                       <td className="py-2 px-4">{item.stokout_divisi}</td>
                       <td className="py-2 px-4">{item.stokout_keterangan}</td>
@@ -428,9 +402,7 @@ export default function TabelStockOut() {
               >
                 Previous
               </button>
-              <span>
-                Page {currentPage} of {totalPages}
-              </span>
+              <span>Page {currentPage} of {totalPages}</span>
               <button
                 onClick={() =>
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))
@@ -445,60 +417,46 @@ export default function TabelStockOut() {
             </div>
           </div>
 
-          {/* Modal Form */}
           {showModal && (
             <div className="fixed inset-0 flex items-center justify-center bg-[rgba(107,114,128,0.4)] z-50">
               <div className="bg-white p-6 rounded-lg w-[400px] max-h-[90vh] overflow-y-auto">
                 <h2 className="text-lg font-semibold mb-4">Tambah Stock Out</h2>
                 <form onSubmit={handleSubmit} className="space-y-3 text-sm">
-                  {[
-                    {
-                      label: "Nama Produk",
-                      name: "name",
-                      placeholder: "Masukkan nama produk",
-                    },
-                    {
-                      label: "Kuantitas",
-                      name: "qty",
-                      placeholder: "Masukkan kuantitas produk",
-                      type: "number",
-                    },
-                    {
-                      label: "Satuan",
-                      name: "satuan",
-                      placeholder: "Masukkan satuan produk",
-                    },
-                    {
-                      label: "Spesifikasi",
-                      name: "spesifikasi",
-                      placeholder: "Masukkan spesifikasi produk",
-                      required: false,
-                    },
-                    {
-                      label: "Nama",
-                      name: "nama",
-                      placeholder: "Masukkan nama",
-                    },
-                    {
-                      label: "Divisi",
-                      name: "divisi",
-                      placeholder: "Masukkan divisi",
-                    },
-                    {
-                      label: "Keterangan",
-                      name: "keterangan",
-                      placeholder: "Masukkan keterangan",
-                      type: "text",
-                    },
-                    { label: "Tanggal", name: "tanggal", type: "date" },
-                  ].map(
-                    ({
-                      label,
-                      name,
-                      type = "text",
-                      placeholder,
-                      required = true,
-                    }) => (
+                  <div className="relative">
+                    <label className="block mb-1 text-[#383E49]">Nama Produk</label>
+                    <input
+                      type="text"
+                      name="nama_produk"
+                      value={formData.nama_produk}
+                      onChange={handleChange}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                      onFocus={() => {
+                        if (formData.nama_produk) {
+                          setShowSuggestions(true);
+                        }
+                      }}
+                      placeholder="Masukkan nama produk"
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-300"
+                      required
+                      autoComplete="off"
+                    />
+                    {showSuggestions && productSuggestions.length > 0 && (
+                      <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-y-auto shadow-lg">
+                        {productSuggestions.map((product) => (
+                          <li
+                            key={product.id_produk}
+                            className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                            onMouseDown={() => handleSuggestionClick(product)}
+                          >
+                            {product.nama_produk}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {formFields.map(
+                    ({ label, name, type = "text", placeholder, readOnly = false }) => (
                       <div key={name}>
                         <label className="block mb-1 text-[#383E49]">
                           {label}
@@ -508,29 +466,13 @@ export default function TabelStockOut() {
                           name={name}
                           value={formData[name]}
                           onChange={handleChange}
-                          onBlur={
-                            name === "name" ? handleProductInputBlur : undefined
-                          }
-                          placeholder={
-                            type !== "date" ? placeholder : undefined
-                          }
-                          className={`w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-300`}
-                          required={required}
-                          list={
-                            name === "name" ? "product-suggestions" : undefined
-                          }
+                          placeholder={placeholder}
+                          readOnly={readOnly}
+                          className={`w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-300 ${
+                            readOnly ? "bg-gray-100" : ""
+                          }`}
+                          required={!readOnly}
                         />
-                        {name === "name" && productSuggestions.length > 0 && (
-                          <datalist id="product-suggestions">
-                            {productSuggestions.map((product) => (
-                              <option
-                                key={product.id_produk}
-                                value={product.nama_produk}
-                                onClick={() => handleProductSelect(product)}
-                              />
-                            ))}
-                          </datalist>
-                        )}
                       </div>
                     )
                   )}

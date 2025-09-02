@@ -135,11 +135,13 @@ class TransaksiVendorController extends Controller
         $validated = $request->validate([
             'vendor_id' => 'required|integer|exists:vendor,id_vendor',
             'items' => 'required|array|min:1',
-            'items.*.part_id' => 'required|string|exists:part,id_part',
             'items.*.jumlah' => 'required|integer|min:1',
             'items.*.total_harga' => 'required|numeric|min:0',
             'items.*.merk_part' => 'required|string|max:255',
             'items.*.harga_part' => 'required|numeric|min:0',
+            'items.*.part_name' => 'required|string|max:255',
+            'items.*.kategori_name' => 'required|string|max:255',
+            'items.*.satuan_part' => 'required|string|max:255',
             'overall_total' => 'required|numeric|min:0',
         ]);
 
@@ -156,15 +158,30 @@ class TransaksiVendorController extends Controller
             ]);
 
             foreach ($validated['items'] as $item) {
-                // Find the vendor_part record
+                // Find or create the part case-insensitively
+                $part = \App\Models\Part::where(DB::raw('LOWER(nama_part)'), strtolower($item['part_name']))->first();
+
+                if (!$part) {
+                    // Find or create category
+                    $kategori = \App\Models\KategoriPart::firstOrCreate(['nama_kategori' => $item['kategori_name']]);
+
+                    $part = \App\Models\Part::create([
+                        'nama_part' => $item['part_name'],
+                        'id_kategori_part' => $kategori->id_kategori_part,
+                    ]);
+                }
+
+                $partId = $part->id_part;
+
                 $vendorPart = VendorPart::updateOrCreate(
                     [
                         'id_vendor' => $validated['vendor_id'],
-                        'id_part' => $item['part_id'],
+                        'id_part' => $partId, // Use the found or created partId
                     ],
                     [
                         'merk_part' => $item['merk_part'],
                         'harga_part' => $item['harga_part'],
+                        'satuan_part' => $item['satuan_part'],
                     ]
                 );
 
@@ -216,5 +233,81 @@ class TransaksiVendorController extends Controller
             ->get();
 
         return response()->json($recentTransactions);
+    }
+
+    public function addItems(Request $request, Transaksi $transaksi)
+    {
+        $validated = $request->validate([
+            'vendor_id' => 'required|integer|exists:vendor,id_vendor',
+            'items' => 'required|array|min:1',
+            'items.*.jumlah' => 'required|integer|min:1',
+            'items.*.total_harga' => 'required|numeric|min:0',
+            'items.*.merk_part' => 'required|string|max:255',
+            'items.*.harga_part' => 'required|numeric|min:0',
+            'items.*.part_name' => 'required|string|max:255',
+            'items.*.kategori_name' => 'required|string|max:255',
+            'items.*.satuan_part' => 'required|string|max:255',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $user = Auth::user();
+
+            foreach ($validated['items'] as $item) {
+                // Find or create the part case-insensitively
+                $part = \App\Models\Part::where(DB::raw('LOWER(nama_part)'), strtolower($item['part_name']))->first();
+
+                if (!$part) {
+                    // Find or create category
+                    $kategori = \App\Models\KategoriPart::firstOrCreate(['nama_kategori' => $item['kategori_name']]);
+
+                    $part = \App\Models\Part::create([
+                        'nama_part' => $item['part_name'],
+                        'id_kategori_part' => $kategori->id_kategori_part,
+                    ]);
+                }
+                $partId = $part->id_part;
+
+                $vendorPart = VendorPart::updateOrCreate(
+                    [
+                        'id_vendor' => $validated['vendor_id'],
+                        'id_part' => $partId,
+                    ],
+                    [
+                        'merk_part' => $item['merk_part'],
+                        'harga_part' => $item['harga_part'],
+                        'satuan_part' => $item['satuan_part'],
+                    ]
+                );
+
+                // Create TransaksiVendor record for the existing Transaksi
+                TransaksiVendor::create([
+                    'id_transaksi' => $transaksi->id_transaksi,
+                    'id_vendorpart' => $vendorPart->id_vendorpart,
+                    'harga_part_saat_ini' => $item['harga_part'],
+                    'jumlah' => $item['jumlah'],
+                    'total_harga' => $item['total_harga'],
+                ]);
+            }
+
+            // Recalculate and update the total on the main Transaksi record
+            $newTotal = $transaksi->transaksivendor()->sum('total_harga');
+            $transaksi->total = $newTotal;
+            $transaksi->save();
+
+            if ($user) {
+                HistoryUsersController::record("{$user->name} added new items to transaction #{$transaksi->id_transaksi}");
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Items added to transaction successfully.',
+                'transaksi_id' => $transaksi->id_transaksi,
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'An error occurred while adding items.', 'error' => $e->getMessage()], 500);
+        }
     }
 }

@@ -28,17 +28,21 @@ export default function DetailInventory({ product, onClose }) {
 
   const handleChange = (field, value) => {
     setEditedProduct((prev) => {
+      const newValues = { ...prev };
       if (field === "nama_kategori") {
-        return {
-          ...prev,
-          kategori_inv: { ...prev.kategori_inv, nama_kategori: value },
-        };
+        newValues.kategori_inv = { ...prev.kategori_inv, nama_kategori: value };
       } else {
-        return {
-          ...prev,
-          [field]: value,
-        };
+        newValues[field] = value;
       }
+
+      if (field === "stok_awal") {
+        const stokAwal = parseInt(value) || 0;
+        const stokIn = parseInt(newValues.stok_in) || 0;
+        const stokOut = parseInt(newValues.stok_out) || 0;
+        newValues.stok_akhir = stokAwal + stokIn - stokOut;
+      }
+
+      return newValues;
     });
   };
 
@@ -55,12 +59,15 @@ export default function DetailInventory({ product, onClose }) {
         stok_awal: parseInt(editedProduct.stok_awal),
         produk_satuan: editedProduct.produk_satuan,
         produk_minimum_stok: parseInt(editedProduct.produk_minimum_stok),
+        spesifikasi: editedProduct.spesifikasi,
       };
 
       const response = await APIEndpoint.put(
         `/api/inventori/${product.id_produk}`,
         payload
       );
+
+      setEditedProduct(response.data);
 
       Swal.fire({
         title: "Berhasil!",

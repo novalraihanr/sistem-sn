@@ -24,13 +24,17 @@ class StokInController extends Controller
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
         $validated = $request->validate([
             'nama_produk' => 'required|string|max:255',
             'nama_kategori' => 'required|string|max:255',
             'stokin_kuantitas' => 'required|integer|min:1',
             'stokin_spesifikasi' => 'nullable|string|max:255',
             'stokin_nopomo' => 'required|string|max:255',
-            'stokin_digunakan' => 'required|string|max:255',
             'stokin_harga_produk' => 'required|integer|min:0',
             'stokin_tanggal' => 'required|date',
             'produk_satuan' => 'required|string|max:255',
@@ -62,16 +66,13 @@ class StokInController extends Controller
             'stokin_kuantitas' => $validated['stokin_kuantitas'],
             'stokin_spesifikasi' => $validated['stokin_spesifikasi'],
             'stokin_nopomo' => $validated['stokin_nopomo'],
-            'stokin_digunakan' => $validated['stokin_digunakan'],
+            'stokin_digunakan' => $user->name,
             'stokin_harga_produk' => $validated['stokin_harga_produk'],
             'stokin_harga_total' => $stokin_harga_total,
             'stokin_tanggal' => $validated['stokin_tanggal'],
         ]);
 
-        $user = Auth::user();
-        if ($user) {
-            HistoryUsersController::record("{$user->name} telah menambahkan stok masuk untuk produk: {$inventori->nama_produk} sebanyak {$stokIn->stokin_kuantitas}");
-        }
+        HistoryUsersController::record("{$user->name} telah menambahkan stok masuk untuk produk: {$inventori->nama_produk} sebanyak {$stokIn->stokin_kuantitas}");
 
         // Update inventori stok
         $inventori->stok_in += $validated['stokin_kuantitas'];
@@ -103,9 +104,7 @@ class StokInController extends Controller
             'id_produk' => 'sometimes|required|exists:inventori,id_produk',
             'nama_produk' => 'sometimes|required|string|max:255', // Added for updating inventori nama_produk
             'stokin_kuantitas' => 'sometimes|required|integer|min:1',
-            'stokin_spesifikasi' => 'nullable|string|max:255',
             'stokin_nopomo' => 'sometimes|required|string|max:255',
-            'stokin_digunakan' => 'sometimes|required|string|max:255',
             'stokin_harga_produk' => 'sometimes|required|integer|min:0',
             'stokin_tanggal' => 'sometimes|required|date',
         ]);
@@ -157,16 +156,16 @@ class StokInController extends Controller
      */
     protected function updateInventoriStok(Inventori $inventori)
     {
-        if ($inventori->stok_in == 0) {
-            $inventori->stok_akhir = $inventori->stok_awal - $inventori->stok_out;
-        } else {
-            $inventori->stok_akhir = $inventori->stok_in - $inventori->stok_out;
-        }
+        // Correctly calculate stok_akhir
+        $inventori->stok_akhir = $inventori->stok_awal + $inventori->stok_in - $inventori->stok_out;
 
-        if ($inventori->stok_akhir <= $inventori->produk_minimum_stok) {
+        // Update produk_status based on the new stok_akhir
+        if ($inventori->stok_akhir <= $inventori->produk_minimum_stok + 2) {
             $inventori->produk_status = 'Need Order';
-        } else {
+        } elseif ($inventori->stok_akhir > $inventori->produk_minimum_stok) {
             $inventori->produk_status = 'Cukup';
+        } else {
+            $inventori->produk_status = 'By Order';
         }
 
         $inventori->save();

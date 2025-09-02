@@ -15,7 +15,6 @@ class StokOut extends Model
     protected $fillable = [
         'id_produk',
         'stokout_kuantitas',
-        'stokout_spesifikasi',
         'stokout_digunakan',
         'stokout_divisi',
         'stokout_keterangan',

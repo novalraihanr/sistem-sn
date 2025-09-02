@@ -24,29 +24,18 @@ class PartController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_part' => 'required|string|max:255',
             'id_kategori_part' => 'required|exists:kategori_part,id_kategori_part',
-            'id_part' => 'required|string|max:255|unique:part,id_part',
         ]);
 
         $user = Auth::user();
 
-        $part = Part::firstOrCreate(
-            [
-                'nama_part' => $request->nama_part,
-                'id_kategori_part' => $request->id_kategori_part,
-                'id_part' => $request->id_part,
-            ]
-        );
+        $part = Part::create($validated);
 
-        if ($part->wasRecentlyCreated) {
-            HistoryUsersController::record("{$user->name} telah menambahkan part baru: {$part->nama_part}");
-        }
+        HistoryUsersController::record("{$user->name} telah menambahkan part baru: {$part->nama_part}");
 
-        $statusCode = $part->wasRecentlyCreated ? 201 : 200;
-
-        return response()->json($part, $statusCode);
+        return response()->json($part, 201);
     }
 
     /**
@@ -54,7 +43,7 @@ class PartController extends Controller
      */
     public function show(Part $part)
     {
-        return response()->json(Part::with('kategoriPart', 'vendors')->find($part->id_part));
+        return response()->json($part->load('kategoriPart', 'vendors'));
     }
 
     /**
@@ -62,18 +51,15 @@ class PartController extends Controller
      */
     public function update(Request $request, Part $part)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_part' => 'sometimes|string|max:255',
             'id_kategori_part' => 'sometimes|exists:kategori_part,id_kategori_part',
-            'id_part' => 'sometimes|string|max:255',
         ]);
 
         $user = Auth::user();
         $oldName = $part->nama_part;
 
-        $updateData = $request->only(['nama_part', 'id_kategori_part', 'id_part']);
-
-        $part->update($updateData);
+        $part->update($validated);
 
         HistoryUsersController::record("{$user->name} telah mengupdate part: {$oldName} menjadi {$part->nama_part}");
 

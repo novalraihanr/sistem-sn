@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Inventori;
 use App\Models\Vendor;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\HistoryUsersController;
+use App\Http\Controllers\HistoryInventoriController;
+use Illuminate\Support\Facades\Cache;
 
 class InventoriController extends Controller
 {
@@ -31,6 +34,7 @@ class InventoriController extends Controller
             'stok_awal' => 'required|integer|min:0',
             'produk_satuan' => 'required|string|max:255',
             'produk_minimum_stok' => 'required|integer|min:0',
+            'spesifikasi' => 'required|string|max:255',
         ]);
 
         // Find or create the KategoriInv
@@ -47,6 +51,7 @@ class InventoriController extends Controller
             'stok_out' => 0,
             'produk_satuan' => $validated['produk_satuan'],
             'produk_minimum_stok' => $validated['produk_minimum_stok'],
+            'spesifikasi' => $validated['spesifikasi'],
             'bulan_sekarang' => now()->toDateString(),
         ]);
 
@@ -83,6 +88,7 @@ class InventoriController extends Controller
             'stok_awal' => 'sometimes|required|integer|min:0',
             'produk_satuan' => 'sometimes|required|string|max:255',
             'produk_minimum_stok' => 'sometimes|required|integer|min:0',
+            'spesifikasi' => 'sometimes|string|max:255',
         ]);
 
         // Find or create the KategoriInv if nama_kategori is provided
@@ -93,16 +99,25 @@ class InventoriController extends Controller
             $inventori->id_kategori = $kategori->id_kategori;
         }
 
-        $inventori->update($validated);
+        $inventori->fill($validated);
+
+        // Always recalculate stok_akhir to ensure consistency
+        $inventori->stok_akhir = $inventori->stok_awal + $inventori->stok_in - $inventori->stok_out;
+
+        // Update produk_status based on the new stok_akhir
+        if ($inventori->stok_akhir <= $inventori->produk_minimum_stok + 2) {
+            $inventori->produk_status = 'Need Order';
+        } elseif ($inventori->stok_akhir > $inventori->produk_minimum_stok) {
+            $inventori->produk_status = 'Cukup';
+        } else {
+            $inventori->produk_status = 'By Order';
+        }
+
+        $inventori->save(); // Save all changes at once
 
         $user = Auth::user();
         if ($user) {
             HistoryUsersController::record("{$user->name} telah mengupdate inventori: {$oldName}");
-        }
-
-        // Recalculate produk_status if relevant fields changed
-        if (isset($validated['stok_awal']) || isset($validated['produk_minimum_stok']) || isset($validated['nama_produk']) || isset($validated['nama_kategori'])) {
-            $this->updateProdukStatus($inventori);
         }
 
         return response()->json($inventori);
@@ -132,25 +147,6 @@ class InventoriController extends Controller
         }
 
         return response()->json(['message' => 'All inventori produk statuses updated successfully.']);
-    }
-
-    /**
-     * Helper function to update produk_status based on stok_akhir and produk_minimum_stok.
-     */
-    protected function updateProdukStatus(Inventori $inventori)
-    {
-        if ($inventori->stok_akhir > $inventori->produk_minimum_stok) {
-            $inventori->produk_status = 'Cukup';
-        } else {
-            // Stok is at or below minimum
-            // Check for "2 away" condition
-            if ($inventori->stok_akhir <= $inventori->produk_minimum_stok + 2) {
-                $inventori->produk_status = 'Need Order';
-            } else {
-                $inventori->produk_status = 'By Order';
-            }
-        }
-        $inventori->save();
     }
 
     public function getCounts()
@@ -268,5 +264,25 @@ class InventoriController extends Controller
             'total_stok_in' => $totalStokIn,
             'total_stok_out' => $totalStokOut,
         ]);
+    }
+
+    public function triggerArchive()
+    {
+        $today = Carbon::today()->toDateString();
+        $lastRun = Cache::get('archive_inventori_last_run');
+
+        if ($lastRun === $today) {
+            return response()->json(['message' => 'Inventory archiving has already been run today.'], 200);
+        }
+
+        $historyController = new HistoryInventoriController();
+        $response = $historyController->archiveOldInventori();
+
+        if ($response->getStatusCode() === 200) {
+            // Cache for 24 hours (1440 minutes)
+            Cache::put('archive_inventori_last_run', $today, 1440);
+        }
+
+        return $response;
     }
 }
