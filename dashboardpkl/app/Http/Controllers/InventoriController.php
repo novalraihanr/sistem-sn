@@ -60,7 +60,7 @@ class InventoriController extends Controller
             HistoryUsersController::record("{$user->name} telah menambahkan inventori baru: {$inventori->nama_produk}");
         }
 
-        $this->updateProdukStatus($inventori);
+        // $this->updateProdukStatus($inventori);
 
         return response()->json($inventori, 201);
     }
@@ -109,7 +109,7 @@ class InventoriController extends Controller
             $inventori->produk_status = 'Need Order';
         } elseif ($inventori->stok_akhir > $inventori->produk_minimum_stok) {
             $inventori->produk_status = 'Cukup';
-        } else {
+        } elseif ($inventori->stok_akhir == 0) {
             $inventori->produk_status = 'By Order';
         }
 
@@ -138,16 +138,16 @@ class InventoriController extends Controller
         return response()->json(null, 204);
     }
 
-    public function updateAllProdukStatus()
-    {
-        $inventoriItems = Inventori::all();
-
-        foreach ($inventoriItems as $inventori) {
-            $this->updateProdukStatus($inventori);
-        }
-
-        return response()->json(['message' => 'All inventori produk statuses updated successfully.']);
-    }
+    // public function updateAllProdukStatus()
+    // {
+    //     $inventoriItems = Inventori::all();
+    //
+    //     foreach ($inventoriItems as $inventori) {
+    //         $this->updateProdukStatus($inventori);
+    //     }
+    //
+    //     return response()->json(['message' => 'All inventori produk statuses updated successfully.']);
+    // }
 
     public function getCounts()
     {

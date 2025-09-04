@@ -20,6 +20,7 @@ export default function AddTransaction() {
   const [produkList, setProdukList] = useState([]);
   const [partSuggestions, setPartSuggestions] = useState([]);
   const [kategoriSuggestions, setKategoriSuggestions] = useState([]);
+  const [merkSuggestions, setMerkSuggestions] = useState([]);
 
   // Loading state
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,7 @@ export default function AddTransaction() {
   const vendorSearchTimer = useRef(null);
   const partSearchTimers = useRef([]);
   const kategoriSearchTimers = useRef([]);
+  const merkSearchTimers = useRef([]);
 
   // --- Vendor Autocomplete ---
   const handleVendorSearch = async (name) => {
@@ -138,6 +140,27 @@ export default function AddTransaction() {
     }
   };
 
+  // --- Merk Autocomplete ---
+  const handleMerkSearch = async (index, merkName) => {
+    if (merkName.length < 1) {
+      const newSuggestions = [...merkSuggestions];
+      newSuggestions[index] = [];
+      setMerkSuggestions(newSuggestions);
+      return;
+    }
+    try {
+      const partName = produkList[index]?.part_name || "";
+      const res = await APIEndpoint.get(
+        `/api/vendor-part/search-merks?q=${merkName}&part_name=${partName}`
+      );
+      const newSuggestions = [...merkSuggestions];
+      newSuggestions[index] = res.data;
+      setMerkSuggestions(newSuggestions);
+    } catch (error) {
+      console.error("Error searching for merks:", error);
+    }
+  };
+
   const handleKategoriSelect = (index, kategori) => {
     handleChange(index, "kategori_name", kategori.nama_kategori);
     const newSuggestions = [...kategoriSuggestions];
@@ -167,6 +190,14 @@ export default function AddTransaction() {
     }, 300);
   };
 
+  const handleMerkInputChange = (index, value) => {
+    handleChange(index, "merk_part", value);
+    clearTimeout(merkSearchTimers.current[index]);
+    merkSearchTimers.current[index] = setTimeout(() => {
+      handleMerkSearch(index, value);
+    }, 300);
+  };
+
   const handlePartSelect = (index, part) => {
     const newList = [...produkList];
 
@@ -191,6 +222,13 @@ export default function AddTransaction() {
     setPartSuggestions(newSuggestions);
   };
 
+  const handleMerkSelect = (index, merk) => {
+    handleChange(index, "merk_part", merk);
+    const newSuggestions = [...merkSuggestions];
+    newSuggestions[index] = [];
+    setMerkSuggestions(newSuggestions);
+  };
+
   const handlePartInputBlur = (index) => {
     clearTimeout(partSearchTimers.current[index]);
     setTimeout(() => {
@@ -213,6 +251,16 @@ export default function AddTransaction() {
     }, 150);
   };
 
+  const handleMerkInputBlur = (index) => {
+    setTimeout(() => {
+      const newSuggestions = [...merkSuggestions];
+      if (newSuggestions[index]) {
+        newSuggestions[index] = [];
+        setMerkSuggestions(newSuggestions);
+      }
+    }, 150);
+  };
+
   // --- General Table Handlers ---
   const handleTambahProduk = () => {
     setProdukList([
@@ -228,15 +276,26 @@ export default function AddTransaction() {
       },
     ]);
     setPartSuggestions([...partSuggestions, []]);
+    setKategoriSuggestions([...kategoriSuggestions, []]);
+    setMerkSuggestions([...merkSuggestions, []]);
   };
 
   const handleHapusProduk = (index) => {
     const newList = [...produkList];
     newList.splice(index, 1);
     setProdukList(newList);
-    const newSuggestions = [...partSuggestions];
-    newSuggestions.splice(index, 1);
-    setPartSuggestions(newSuggestions);
+
+    const newPartSuggestions = [...partSuggestions];
+    newPartSuggestions.splice(index, 1);
+    setPartSuggestions(newPartSuggestions);
+
+    const newKategoriSuggestions = [...kategoriSuggestions];
+    newKategoriSuggestions.splice(index, 1);
+    setKategoriSuggestions(newKategoriSuggestions);
+
+    const newMerkSuggestions = [...merkSuggestions];
+    newMerkSuggestions.splice(index, 1);
+    setMerkSuggestions(newMerkSuggestions);
   };
 
   const handleChange = (index, field, value) => {
@@ -491,6 +550,9 @@ export default function AddTransaction() {
                                   className="p-2 cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150 ease-in-out"
                                 >
                                   <div className="font-medium text-gray-800">{p.nama_part}</div>
+                                  {(p.merk_part || p.pivot?.merk_part) && (
+                                    <div className="text-xs text-gray-500">Merk: {p.merk_part || p.pivot?.merk_part}</div>
+                                  )}
                                   {p.kategori_part?.nama_kategori && (
                                     <div className="text-xs text-gray-500">Kategori: {p.kategori_part.nama_kategori}</div>
                                   )}
@@ -535,7 +597,7 @@ export default function AddTransaction() {
                           )}
                         </td>
 
-                        <td className="px-4 py-2">
+                        <td className="px-4 py-2 relative">
                           <div className="max-h-[40px] overflow-y-auto border border-gray-300 rounded">
                             <input
                               type="text"
@@ -547,10 +609,24 @@ export default function AddTransaction() {
                                 handleArrowNavigation(e, index, 2)
                               }
                               onChange={(e) =>
-                                handleChange(index, "merk_part", e.target.value)
+                                handleMerkInputChange(index, e.target.value)
                               }
+                              onBlur={() => handleMerkInputBlur(index)}
                             />
                           </div>
+                          {merkSuggestions[index]?.length > 0 && (
+                            <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto custom-scrollbar">
+                              {merkSuggestions[index].map((m, i) => (
+                                <li
+                                  key={i}
+                                  onClick={() => handleMerkSelect(index, m)}
+                                  className="p-2 cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150 ease-in-out"
+                                >
+                                  <div className="font-medium text-gray-800">{m}</div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </td>
 
                         <td className="px-4 py-2">

@@ -135,6 +135,7 @@ class TransaksiVendorController extends Controller
         $validated = $request->validate([
             'vendor_id' => 'required|integer|exists:vendor,id_vendor',
             'items' => 'required|array|min:1',
+            'items.*.id_part' => 'nullable|integer|exists:part,id_part',
             'items.*.jumlah' => 'required|integer|min:1',
             'items.*.total_harga' => 'required|numeric|min:0',
             'items.*.merk_part' => 'required|string|max:255',
@@ -158,13 +159,16 @@ class TransaksiVendorController extends Controller
             ]);
 
             foreach ($validated['items'] as $item) {
-                // Find or create the part case-insensitively
-                $part = \App\Models\Part::where(DB::raw('LOWER(nama_part)'), strtolower($item['part_name']))->first();
+                // Find a part that has the same name and is associated with any vendor with the same merk.
+                $part = \App\Models\Part::where(DB::raw('LOWER(nama_part)'), strtolower($item['part_name']))
+                    ->whereHas('vendors', function ($query) use ($item) {
+                        $query->where(DB::raw('LOWER(merk_part)'), strtolower($item['merk_part']));
+                    })
+                    ->first();
 
                 if (!$part) {
-                    // Find or create category
+                    // If no part with that name and merk exists, create a new part.
                     $kategori = \App\Models\KategoriPart::firstOrCreate(['nama_kategori' => $item['kategori_name']]);
-
                     $part = \App\Models\Part::create([
                         'nama_part' => $item['part_name'],
                         'id_kategori_part' => $kategori->id_kategori_part,
@@ -240,6 +244,7 @@ class TransaksiVendorController extends Controller
         $validated = $request->validate([
             'vendor_id' => 'required|integer|exists:vendor,id_vendor',
             'items' => 'required|array|min:1',
+            'items.*.id_part' => 'nullable|integer|exists:part,id_part',
             'items.*.jumlah' => 'required|integer|min:1',
             'items.*.total_harga' => 'required|numeric|min:0',
             'items.*.merk_part' => 'required|string|max:255',
@@ -254,18 +259,22 @@ class TransaksiVendorController extends Controller
             $user = Auth::user();
 
             foreach ($validated['items'] as $item) {
-                // Find or create the part case-insensitively
-                $part = \App\Models\Part::where(DB::raw('LOWER(nama_part)'), strtolower($item['part_name']))->first();
+                // Find a part that has the same name and is associated with any vendor with the same merk.
+                $part = \App\Models\Part::where(DB::raw('LOWER(nama_part)'), strtolower($item['part_name']))
+                    ->whereHas('vendors', function ($query) use ($item) {
+                        $query->where(DB::raw('LOWER(merk_part)'), strtolower($item['merk_part']));
+                    })
+                    ->first();
 
                 if (!$part) {
-                    // Find or create category
+                    // If no part with that name and merk exists, create a new part.
                     $kategori = \App\Models\KategoriPart::firstOrCreate(['nama_kategori' => $item['kategori_name']]);
-
                     $part = \App\Models\Part::create([
                         'nama_part' => $item['part_name'],
                         'id_kategori_part' => $kategori->id_kategori_part,
                     ]);
                 }
+
                 $partId = $part->id_part;
 
                 $vendorPart = VendorPart::updateOrCreate(

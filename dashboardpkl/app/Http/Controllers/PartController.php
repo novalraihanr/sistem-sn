@@ -88,6 +88,7 @@ class PartController extends Controller
                     'v.id_vendor',
                     'v.nama_vendor',
                     'vp.harga_part',
+                    'vp.merk_part',
                     'vp.created_at',
                     'vp.updated_at',
                     DB::raw('ROW_NUMBER() OVER (PARTITION BY vp.id_part ORDER BY vp.harga_part ASC, vp.updated_at DESC) as rn')

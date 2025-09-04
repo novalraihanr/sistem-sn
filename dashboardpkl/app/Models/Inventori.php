@@ -23,6 +23,7 @@ class Inventori extends Model
         'produk_minimum_stok',
         'produk_status',
         'bulan_sekarang',
+        'spesifikasi'
     ];
 
     public function kategoriInv(): BelongsTo

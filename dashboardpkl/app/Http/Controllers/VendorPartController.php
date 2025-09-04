@@ -282,4 +282,25 @@ class VendorPartController extends Controller
             return response()->json(['message' => 'An error occurred while detaching part.', 'error' => $e->getMessage()], 500);
         }
     }
+
+    public function searchMerks(Request $request)
+    {
+        $query = $request->input('q', '');
+        $partName = $request->input('part_name');
+
+        $merksQuery = DB::table('vendor_part')->select('merk_part')->distinct();
+
+        if (!empty($query)) {
+            $merksQuery->where('merk_part', 'like', '%' . $query . '%');
+        }
+
+        if (!empty($partName)) {
+            $merksQuery->join('part', 'vendor_part.id_part', '=', 'part.id_part')
+                       ->where('part.nama_part', 'like', '%' . $partName . '%');
+        }
+
+        $merks = $merksQuery->limit(10)->get()->pluck('merk_part');
+
+        return response()->json($merks);
+    }
 }

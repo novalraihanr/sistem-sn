@@ -17,8 +17,10 @@ export default function DetailTransaction() {
   // New states for autosuggestion
   const [partSuggestions, setPartSuggestions] = useState([]);
   const [kategoriSuggestions, setKategoriSuggestions] = useState([]);
+  const [merkSuggestions, setMerkSuggestions] = useState([]);
   const partSearchTimers = useRef([]);
   const kategoriSearchTimers = useRef([]);
+  const merkSearchTimers = useRef([]);
 
   const fetchData = async () => {
     try {
@@ -89,6 +91,26 @@ export default function DetailTransaction() {
     }
   };
 
+  const handleMerkSearch = async (index, merkName) => {
+    if (merkName.length < 1) {
+      const newSuggestions = [...merkSuggestions];
+      newSuggestions[index] = [];
+      setMerkSuggestions(newSuggestions);
+      return;
+    }
+    try {
+      const partName = produkList[index]?.vendor_part?.part?.nama_part || "";
+      const res = await APIEndpoint.get(
+        `/api/vendor-part/search-merks?q=${merkName}&part_name=${partName}`
+      );
+      const newSuggestions = [...merkSuggestions];
+      newSuggestions[index] = res.data;
+      setMerkSuggestions(newSuggestions);
+    } catch (error) {
+      console.error("Error searching for merks:", error);
+    }
+  };
+
   const handlePartInputChange = (index, value) => {
     handleProdukChange(index, "nama_part", value);
     clearTimeout(partSearchTimers.current[index]);
@@ -102,6 +124,14 @@ export default function DetailTransaction() {
     clearTimeout(kategoriSearchTimers.current[index]);
     kategoriSearchTimers.current[index] = setTimeout(() => {
       handleKategoriSearch(index, value);
+    }, 300);
+  };
+
+  const handleMerkInputChange = (index, value) => {
+    handleProdukChange(index, "merk_part", value);
+    clearTimeout(merkSearchTimers.current[index]);
+    merkSearchTimers.current[index] = setTimeout(() => {
+      handleMerkSearch(index, value);
     }, 300);
   };
 
@@ -152,6 +182,13 @@ export default function DetailTransaction() {
     setKategoriSuggestions(newSuggestions);
   };
 
+  const handleMerkSelect = (index, merk) => {
+    handleProdukChange(index, "merk_part", merk);
+    const newSuggestions = [...merkSuggestions];
+    newSuggestions[index] = [];
+    setMerkSuggestions(newSuggestions);
+  };
+
   const handlePartInputBlur = (index) => {
     setTimeout(() => {
       const newSuggestions = [...partSuggestions];
@@ -168,6 +205,16 @@ export default function DetailTransaction() {
       if (newSuggestions[index]) {
         newSuggestions[index] = [];
         setKategoriSuggestions(newSuggestions);
+      }
+    }, 150);
+  };
+
+  const handleMerkInputBlur = (index) => {
+    setTimeout(() => {
+      const newSuggestions = [...merkSuggestions];
+      if (newSuggestions[index]) {
+        newSuggestions[index] = [];
+        setMerkSuggestions(newSuggestions);
       }
     }, 150);
   };
@@ -218,6 +265,7 @@ export default function DetailTransaction() {
     setProdukList([...produkList, newProduk]);
     setPartSuggestions([...partSuggestions, []]);
     setKategoriSuggestions([...kategoriSuggestions, []]);
+    setMerkSuggestions([...merkSuggestions, []]);
   };
 
   const handleDeleteProduk = (index) => {
@@ -320,6 +368,11 @@ export default function DetailTransaction() {
             produk.vendor_part.merk_part !== originalProduk.vendor_part.merk_part
           ) {
             vendorPartUpdateData.merk_part = produk.vendor_part.merk_part;
+          }
+          if (
+            produk.vendor_part.satuan_part !== originalProduk.vendor_part.satuan_part
+          ) {
+            vendorPartUpdateData.satuan_part = produk.vendor_part.satuan_part;
           }
           if (
             produk.vendor_part.harga_part !==
@@ -531,38 +584,35 @@ export default function DetailTransaction() {
                                 type="text"
                                 value={item.vendor_part?.part?.nama_part || ""}
                                 onChange={(e) =>
-                                  item.isNew
-                                    ? handlePartInputChange(
-                                        index,
-                                        e.target.value
-                                      )
-                                    : handleProdukChange(
-                                        index,
-                                        "nama_part",
-                                        e.target.value
-                                      )
+                                  handlePartInputChange(index, e.target.value)
                                 }
-                                onBlur={() =>
-                                  item.isNew && handlePartInputBlur(index)
-                                }
+                                onBlur={() => handlePartInputBlur(index)}
                                 className="border rounded px-1 py-0.5 w-full"
                               />
-                              {item.isNew &&
-                                partSuggestions[index]?.length > 0 && (
-                                  <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
-                                    {partSuggestions[index].map((p) => (
-                                      <li
-                                        key={p.id_part}
-                                        onMouseDown={() =>
-                                          handlePartSelect(index, p)
-                                        }
-                                        className="p-2 cursor-pointer hover:bg-gray-100"
-                                      >
-                                        {p.nama_part}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
+                              {partSuggestions[index]?.length > 0 && (
+                                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                  {partSuggestions[index].map((p) => (
+                                    <li
+                                      key={p.id_part}
+                                      onMouseDown={() =>
+                                        handlePartSelect(index, p)
+                                      }
+                                      className="p-2 cursor-pointer hover:bg-gray-100"
+                                    >
+                                      <div className="font-medium text-gray-800">{p.nama_part}</div>
+                                      {(p.merk_part || p.pivot?.merk_part) && (
+                                        <div className="text-xs text-gray-500">Merk: {p.merk_part || p.pivot?.merk_part}</div>
+                                      )}
+                                      {p.kategori_part?.nama_kategori && (
+                                        <div className="text-xs text-gray-500">Kategori: {p.kategori_part.nama_kategori}</div>
+                                      )}
+                                      {p.pivot?.harga_part && (
+                                        <div className="text-xs text-gray-500">Harga: Rp {p.pivot.harga_part.toLocaleString("id-ID")}</div>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                             </>
                           ) : (
                             item.vendor_part?.part?.nama_part || "N/A"
@@ -583,38 +633,29 @@ export default function DetailTransaction() {
                                     ?.nama_kategori || ""
                                 }
                                 onChange={(e) =>
-                                  item.isNew
-                                    ? handleKategoriInputChange(
-                                        index,
-                                        e.target.value
-                                      )
-                                    : handleProdukChange(
-                                        index,
-                                        "kategori_name",
-                                        e.target.value
-                                      )
+                                  handleKategoriInputChange(
+                                    index,
+                                    e.target.value
+                                  )
                                 }
-                                onBlur={() =>
-                                  item.isNew && handleKategoriInputBlur(index)
-                                }
+                                onBlur={() => handleKategoriInputBlur(index)}
                                 className="border rounded px-1 py-0.5 w-full"
                               />
-                              {item.isNew &&
-                                kategoriSuggestions[index]?.length > 0 && (
-                                  <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
-                                    {kategoriSuggestions[index].map((k) => (
-                                      <li
-                                        key={k.id_kategori_part}
-                                        onMouseDown={() =>
-                                          handleKategoriSelect(index, k)
-                                        }
-                                        className="p-2 cursor-pointer hover:bg-gray-100"
-                                      >
-                                        {k.nama_kategori}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
+                              {kategoriSuggestions[index]?.length > 0 && (
+                                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                  {kategoriSuggestions[index].map((k) => (
+                                    <li
+                                      key={k.id_kategori_part}
+                                      onMouseDown={() =>
+                                        handleKategoriSelect(index, k)
+                                      }
+                                      className="p-2 cursor-pointer hover:bg-gray-100"
+                                    >
+                                      {k.nama_kategori}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                             </>
                           ) : (
                             item.vendor_part?.part?.kategori_part
@@ -622,20 +663,34 @@ export default function DetailTransaction() {
                           )}
                         </td>
                         {/* Merk */}
-                        <td className="px-4 py-2">
+                        <td className="px-4 py-2 relative">
                           {isEditMode ? (
-                            <input
-                              type="text"
-                              value={item.vendor_part?.merk_part || ""}
-                              onChange={(e) =>
-                                handleProdukChange(
-                                  index,
-                                  "merk_part",
-                                  e.target.value
-                                )
-                              }
-                              className="border rounded px-1 py-0.5 w-full"
-                            />
+                            <>
+                              <input
+                                type="text"
+                                value={item.vendor_part?.merk_part || ""}
+                                onChange={(e) =>
+                                  handleMerkInputChange(index, e.target.value)
+                                }
+                                onBlur={() => handleMerkInputBlur(index)}
+                                className="border rounded px-1 py-0.5 w-full"
+                              />
+                              {merkSuggestions[index]?.length > 0 && (
+                                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                  {merkSuggestions[index].map((m, i) => (
+                                    <li
+                                      key={i}
+                                      onMouseDown={() =>
+                                        handleMerkSelect(index, m)
+                                      }
+                                      className="p-2 cursor-pointer hover:bg-gray-100"
+                                    >
+                                      {m}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </>
                           ) : (
                             item.vendor_part?.merk_part || "N/A"
                           )}

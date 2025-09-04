@@ -45,7 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('vendor-part/{vendorId}/{partId}', [VendorPartController::class, 'destroy']);
     Route::get('vendor-part/{id}/parts', [VendorPartController::class, 'getVendorParts']);
     Route::get('vendor/{id}/parts/search/{partName}', [VendorPartController::class, 'searchVendorParts']);
-
+    Route::get('vendor-part/search-merks', [App\Http\Controllers\VendorPartController::class, 'searchMerks']);
     // Transaksi Vendor Routes
     Route::apiResource('transaksi-vendor', TransaksiVendorController::class);
     Route::post('transaksi-vendor/multi', [TransaksiVendorController::class, 'storeMulti']);

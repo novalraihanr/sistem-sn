@@ -92,7 +92,7 @@ class KategoriPartController extends Controller
                         'id_part' => $part->id_part,
                         'id_kategori_part' => $part->id_kategori_part,
                         'nama_part' => $part->nama_part,
-                        'merk_part' => $part->merk_part,
+                        'merk_part' => $vendor->pivot->merk_part,
                         'harga_part' => $vendor->pivot->harga_part,
                         'id_vendor' => $vendor->id_vendor,
                         'nama_vendor' => $vendor->nama_vendor,
@@ -103,7 +103,7 @@ class KategoriPartController extends Controller
                     'id_part' => $part->id_part,
                     'id_kategori_part' => $part->id_kategori_part,
                     'nama_part' => $part->nama_part,
-                    'merk_part' => $part->merk_part,
+                    'merk_part' => null,
                     'harga_part' => null,
                     'nama_vendor' => null,
                 ];

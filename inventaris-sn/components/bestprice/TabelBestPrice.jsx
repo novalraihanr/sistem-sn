@@ -66,6 +66,7 @@ export default function TabelBestPrice() {
           <thead className="text-[#5D6679] border-b border-[#D0D3D9]">
             <tr>
               <th className="py-2 px-4 w-1/3">Produk</th>
+              <th className="py-2 px-4 whitespace-nowrap">Merk</th>
               <th className="py-2 px-4 whitespace-nowrap">Vendor</th>
               <th className="py-2 px-4 whitespace-nowrap">Total Harga</th>
               <th className="py-2 px-4 whitespace-nowrap">Timestamp</th>
@@ -75,13 +76,13 @@ export default function TabelBestPrice() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="text-center py-4 text-gray-500">
+                <td colSpan={6} className="text-center py-4 text-gray-500">
                   Loading...
                 </td>
               </tr>
             ) : paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-4 text-gray-500">
+                <td colSpan={6} className="text-center py-4 text-gray-500">
                   Tidak ada data
                 </td>
               </tr>
@@ -92,6 +93,7 @@ export default function TabelBestPrice() {
                   className="border-b text-[#383E49] border-[#D0D3D9]"
                 >
                   <td className="py-2 px-4 w-1/3">{item.nama_part}</td>
+                  <td className="py-2 px-4 whitespace-nowrap">{item.merk_part || '-'}</td>
                   <td className="py-2 px-4 whitespace-nowrap">
                     {item.nama_vendor}
                   </td>

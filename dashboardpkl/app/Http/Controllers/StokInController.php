@@ -164,7 +164,7 @@ class StokInController extends Controller
             $inventori->produk_status = 'Need Order';
         } elseif ($inventori->stok_akhir > $inventori->produk_minimum_stok) {
             $inventori->produk_status = 'Cukup';
-        } else {
+        } elseif ($inventori->stok_akhir == 0) {
             $inventori->produk_status = 'By Order';
         }
 

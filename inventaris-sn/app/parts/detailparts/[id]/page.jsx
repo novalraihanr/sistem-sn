@@ -22,6 +22,7 @@ export default function DetailParts() {
         try {
           const response = await APIEndpoint.get(`/api/kategori-part/${id}/parts`);
           setItems(response.data);
+          console.log(response.data);
           if (response.data.length > 0) {
             // Assuming the category name can be derived from the first item's part relation
             // This might need adjustment if the API response structure is different
