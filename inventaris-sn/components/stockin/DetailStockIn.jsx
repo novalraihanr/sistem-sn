@@ -264,9 +264,9 @@ export default function DetailStockIn({ product, onClose, refetchData }) {
                 type={type}
                 value={value}
                 onChange={(e) => handleChange(key, e.target.value)}
-                readOnly={!isEditing || key === "harga_total"}
+                readOnly={!isEditing || ["harga_total", "spesifikasi", "satuan", "input_by"].includes(key)}
                 className={`w-[450px] border rounded-md px-2 py-1 ${
-                  !isEditing || key === "harga_total"
+                  !isEditing || ["harga_total", "spesifikasi", "satuan", "input_by"].includes(key)
                     ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                     : ""
                 }`}

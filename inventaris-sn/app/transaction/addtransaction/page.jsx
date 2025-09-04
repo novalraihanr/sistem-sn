@@ -463,7 +463,6 @@ export default function AddTransaction() {
                   <div className="w-[450px]">
                     <input
                       type="text"
-                      placeholder="Masukkan nama vendor"
                       value={vendorName}
                       onChange={handleVendorInputChange}
                       onBlur={handleVendorInputBlur}

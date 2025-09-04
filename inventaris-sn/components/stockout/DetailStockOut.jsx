@@ -113,7 +113,7 @@ export default function DetailStockOut({ product, onClose }) {
         title: "Berhasil!",
         text: "Perubahan berhasil disimpan!",
         icon: "success",
-        confirmButtonText: "OK",
+        confirmButtonText: "OK", 
       });
 
       setIsEditing(false);
@@ -274,9 +274,9 @@ export default function DetailStockOut({ product, onClose }) {
                 type={type}
                 value={value}
                 onChange={(e) => handleChange(key, e.target.value)}
-                readOnly={!isEditing}
+                readOnly={!isEditing || ["spesifikasi", "satuan"].includes(key)}
                 className={`w-[450px] border rounded-md px-2 py-1 ${
-                  !isEditing
+                  !isEditing || ["spesifikasi", "satuan"].includes(key)
                     ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                     : ""
                 }`}
