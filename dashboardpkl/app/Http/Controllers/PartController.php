@@ -112,4 +112,23 @@ class PartController extends Controller
 
         return response()->json($parts);
     }
+
+    public function getAllPricesForPart(Request $request)
+    {
+        $partName = $request->input('part_name', '');
+
+        if (empty($partName)) {
+            return response()->json([]);
+        }
+
+        $allPrices = DB::table('vendor_part as vp')
+            ->join('part as p', 'vp.id_part', '=', 'p.id_part')
+            ->join('vendor as v', 'vp.id_vendor', '=', 'v.id_vendor')
+            ->where('p.nama_part', 'like', '%' . $partName . '%')
+            ->select('p.id_part', 'p.nama_part', 'v.id_vendor', 'v.nama_vendor', 'vp.merk_part', 'vp.harga_part', 'vp.created_at', 'vp.updated_at')
+            ->orderBy('vp.harga_part', 'asc')
+            ->get();
+
+        return response()->json($allPrices);
+    }
 }

@@ -1,43 +1,87 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import APIEndpoint from "@/app/api/api";
 
 export default function TabelBestPrice() {
   const itemsPerPage = 20;
-  const [allData, setAllData] = useState([]);
+  const [bestPriceData, setBestPriceData] = useState([]);
+  const [searchData, setSearchData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true); // 🔹 state untuk loading
+  const [loading, setLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
+  const searchTimeout = useRef(null);
 
-  const totalPages = Math.ceil(allData.length / itemsPerPage);
-
+  // Fetch initial best price data
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchBestPrices = async () => {
       try {
-        setLoading(true); // mulai loading
+        setLoading(true);
         const response = await APIEndpoint.get("/api/part/best-prices");
-        setAllData(response.data);
+        setBestPriceData(response.data);
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("Failed to fetch best price data:", error);
       } finally {
-        setLoading(false); // selesai loading
+        setLoading(false);
       }
     };
 
-    fetchData();
+    fetchBestPrices();
   }, []);
 
-  const filteredData = allData.filter((item) =>
-    item.nama_part.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Handle search logic
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
 
-  const paginatedData = filteredData.slice(
+    if (searchTerm.trim() !== "") {
+      setIsSearching(true);
+      setLoading(true);
+
+      // Debounce the search API call
+      searchTimeout.current = setTimeout(async () => {
+        try {
+          const response = await APIEndpoint.get(
+            `/api/part/all-prices?part_name=${searchTerm}`
+          );
+          setSearchData(response.data);
+        } catch (error) {
+          console.error("Failed to fetch search data:", error);
+          setSearchData([]);
+        } finally {
+          setLoading(false);
+        }
+      }, 500); // 500ms delay
+    } else {
+      setIsSearching(false);
+      setSearchData([]);
+    }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+    };
+  }, [searchTerm]);
+
+  const displayData = isSearching ? searchData : bestPriceData;
+  const totalPages = Math.ceil(displayData.length / itemsPerPage);
+
+  const paginatedData = displayData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm w-full">
@@ -51,10 +95,7 @@ export default function TabelBestPrice() {
             type="text"
             placeholder="Search produk..."
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={handleSearchChange}
             className="border border-gray-300 px-3 py-2 rounded-sm text-sm focus:outline-none focus:ring focus:border-blue-300"
           />
         </div>
@@ -134,7 +175,7 @@ export default function TabelBestPrice() {
           >
             Previous
           </button>
-          {allData.length > 0 ? (
+          {displayData.length > 0 ? (
             <span>
               Page {currentPage} of {totalPages}
             </span>
