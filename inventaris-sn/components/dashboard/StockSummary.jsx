@@ -21,9 +21,7 @@ export default function StockSummary() {
     out: Array(12).fill(0),
   });
   const [availableParts, setAvailableParts] = useState(["Semua Produk"]);
-
-  // Daftar tahun descending + "Semua Tahun"
-  const availableYears = ["Semua Tahun", 2025, 2024, 2023];
+  const [availableYears, setAvailableYears] = useState(["Semua Tahun"]);
 
   // Fetch Data
   useEffect(() => {
@@ -33,11 +31,20 @@ export default function StockSummary() {
           params: {
             nama_produk:
               selectedProduct === "Semua Produk" ? null : selectedProduct,
-            tahun: selectedYear === "Semua Tahun" ? null : selectedYear,
+            tahun:
+              selectedYear === "Semua Tahun" ? null : parseInt(selectedYear, 10),
           },
         });
 
         const monthlyData = res.data;
+
+        const yearsFromData = [
+          ...new Set(monthlyData.map((item) => item.tahun)), //INI GA ADA TAHUNNYA
+        ];
+        setAvailableYears([
+          "Semua Tahun",
+          ...yearsFromData.sort((a, b) => b - a),
+        ]);
 
         const inData = Array(12).fill(0);
         const outData = Array(12).fill(0);
