@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import APIEndpoint from "@/app/api/api";
-import axios from "axios";
 
 export default function HistoryInvDetail() {
   const params = useParams();
@@ -33,10 +32,14 @@ export default function HistoryInvDetail() {
     if (isDownloading) return;
     setIsDownloading(true);
 
+    // Convert month name to month number. "Semua Bulan" will be 0.
+    const monthIndex = categories.indexOf(selectedMonth);
+    const monthParam = monthIndex > 0 ? `?month=${monthIndex}` : '';
+
     try {
       // Use axios directly for specific configuration needed for file download
-      const response = await axios.get(
-        `http://localhost:8000/api/report/inventory/${year}/download`,
+      const response = await APIEndpoint.get(
+        `http://localhost:8000/api/report/inventory/${year}/download${monthParam}`,
         {
           withCredentials: true, // Crucial for sending session cookies
           responseType: 'blob',    // Crucial for receiving file data
@@ -46,7 +49,9 @@ export default function HistoryInvDetail() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `inventory-report-${year}.pdf`);
+
+      const monthStr = monthIndex > 0 ? `-bulan-${monthIndex}` : '';
+      link.setAttribute('download', `inventory-report-${year}${monthStr}.pdf`);
 
       document.body.appendChild(link);
       link.click();

@@ -76,13 +76,6 @@ export default function InvSum() {
           </p>
           <p className="text-sm text-[#5D6679]">Last Update: {lastUpdated}</p>
         </div>
-        <div className="jml-supplier pr-7">
-          <p className="font-bold text-green-600 mb-2">Total Supplier</p>
-          <p className="supplier-num mb-2 text-[#5D6679] font-bold">
-            {totalSupplier}
-          </p>
-          <p className="text-sm text-[#5D6679]">Last Update: {lastUpdated}</p>
-        </div>
       </div>
     </div>
   );

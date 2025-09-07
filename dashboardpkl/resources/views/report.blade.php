@@ -288,10 +288,30 @@
       *Dokumen ini dihasilkan otomatis oleh sistem inventory | Generated on
       {{ $generatedTimestamp ?? now()->format('d-m-Y H:i A') }}
     </p>
-    <p class="page-number">
-      <span>Halaman {{ $currentPage ?? 1 }}</span> dari {{ $totalPages ?? 1 }}
-    </p>
   </footer>
+
+  <script type="text/php">
+    if (isset($pdf)) {
+        $text = "Halaman {PAGE_NUM} dari {PAGE_COUNT}";
+        $font = $fontMetrics->get_font("sans-serif");
+        $size = 10;
+        $y = 570; // Y-coordinate for the bottom of the page
+
+        // Get the page number from the canvas
+        $pageNumber = $pdf->get_canvas()->get_page_number();
+
+        // Set X-coordinate based on the page number
+        if ($pageNumber > 1) {
+            // Centered position for page 2 and onwards
+            $x = 400;
+        } else {
+            // Right-aligned position for the first page
+            $x = 750;
+        }
+
+        $pdf->page_text($x, $y, $text, $font, $size);
+    }
+  </script>
 
 </body>
 

@@ -16,34 +16,50 @@ class ReportController extends Controller
      * @param int $year
      * @return \Illuminate\Http\Response
      */
-    public function downloadInventoryReport($year)
+    public function downloadInventoryReport(Request $request, $year)
     {
         // Validate that the year is a 4-digit number
         if (!preg_match('/^\d{4}$/', $year)) {
             return response()->json(['message' => 'Invalid year format.'], 400);
         }
 
-        // Fetch data from HistoryInventori for the given year
-        $items = HistoryInventori::whereYear('bulan_sekarang', $year)->get();
+        // Get month from request, if provided
+        $month = $request->query('month');
 
-        if ($items->isEmpty()) {
-            // Or return a view indicating no data was found
-            return back()->with('error', 'No inventory history found for the year ' . $year);
+        // Start building the query
+        $query = HistoryInventori::whereYear('bulan_sekarang', $year);
+
+        // Add month filter if a valid month is provided
+        if ($month && is_numeric($month) && $month >= 1 && $month <= 12) {
+            $query->whereMonth('bulan_sekarang', $month);
         }
+
+        $items = $query->get();
+
+        
 
         // Prepare data for the view
         $user = Auth::user();
+        $monthName = '';
+        if ($month) {
+            $monthName = ' Bulan ' . Carbon::create()->month((int)$month)->translatedFormat('F');
+        }
+
+        $jakartaTime = Carbon::now('Asia/Jakarta');
         $data = [
-            'title' => 'Laporan Inventory Tahun ' . $year,
+            'title' => 'Laporan Inventory Tahun ' . $year . $monthName,
             'bagian' => 'Alat Tulis Kantor', // This can be made dynamic if needed
-            'laporan' => 'Laporan Penggunaan Inventaris ATK Tahun ' . $year,
-            'tanggal' => Carbon::now()->translatedFormat('d F Y'),
+            'laporan' => 'Laporan Penggunaan Inventaris ATK Tahun ' . $year . $monthName,
+            'tanggal' => $jakartaTime->translatedFormat('d F Y'),
             'pengguna' => $user ? $user->name : 'System',
             'items' => $items,
-            'generatedTimestamp' => Carbon::now()->format('d-m-Y H:i A'),
+            'generatedTimestamp' => $jakartaTime->format('d-m-Y H:i A'),
             'currentPage' => 1,
             'totalPages' => 1, // Pagination in PDF is complex, setting to 1 for now
         ];
+
+        // Enable PHP for page number script execution
+        Pdf::setOption(['isPhpEnabled' => true]);
 
         // Load the view and pass the data
         $pdf = Pdf::loadView('report', $data);
@@ -52,7 +68,8 @@ class ReportController extends Controller
         $pdf->setPaper('a4', 'landscape');
 
         // Generate a filename
-        $filename = 'sn-inventory-report-' . $year . '.pdf';
+        $monthStr = $month ? '-bulan-' . $month : '';
+        $filename = 'sn-inventory-report-' . $year . $monthStr . '.pdf';
 
         // Download the PDF
         return $pdf->download($filename);
