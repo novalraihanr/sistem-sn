@@ -16,10 +16,10 @@ class HistoryUsersController extends Controller
      */
     public function index()
     {
-        return response()->json(HistoryUsers::with('user')->latest()->paginate(10));
+        return response()->json(HistoryUsers::with('user')->latest()->get());
     }
 
-    
+
 
     /**
      * Display the specified resource.
@@ -53,7 +53,7 @@ class HistoryUsersController extends Controller
         return response()->json(null, 204);
     }
 
-    
+
     public static function record(string $keterangan)
     {
         $user = Auth::user();
@@ -61,6 +61,7 @@ class HistoryUsersController extends Controller
         if ($user) {
             HistoryUsers::create([
                 'id_user' => $user->id,
+                'nama_user' => $user->name,
                 'keterangan' => $keterangan,
                 'tanggal' => Carbon::now()->toDateString(),
                 'jam' => Carbon::now()->toTimeString(),

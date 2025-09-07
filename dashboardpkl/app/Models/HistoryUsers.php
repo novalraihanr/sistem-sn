@@ -13,6 +13,7 @@ class HistoryUsers extends Model
     protected $primaryKey = 'id_history';
     protected $fillable = [
         'id_user',
+        'nama_user',
         'keterangan',
         'tanggal',
         'jam'

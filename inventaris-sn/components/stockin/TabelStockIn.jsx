@@ -107,7 +107,7 @@ export default function TabelStockIn() {
       nama_produk: product.nama_produk,
       nama_kategori: product.kategori_inv?.nama_kategori || "",
       produk_satuan: product.produk_satuan || "",
-      stokin_spesifikasi: product.spesifikasi || "",
+      stokin_spesifikasi: product.produk_spesifikasi || "",
     }));
     setShowSuggestions(false);
   };
@@ -376,7 +376,7 @@ export default function TabelStockIn() {
                       </td>
                       <td className="py-2 px-4">{item.stokin_kuantitas}</td>
                       <td className="py-2 px-4">{item.inventori?.produk_satuan}</td>
-                      <td className="py-2 px-4">{item.stokin_spesifikasi || "-"}</td>
+                      <td className="py-2 px-4">{item.stokin_spesifikasi || item.inventori?.spesifikasi || "-"}</td>
                       <td className="py-2 px-4">{item.stokin_nopomo}</td>
                       <td className="py-2 px-4">{item.stokin_digunakan}</td>
                       <td className="py-2 px-4">

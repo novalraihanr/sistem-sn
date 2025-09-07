@@ -5,35 +5,40 @@ import APIEndpoint from '../../app/api/api';
 export default function TabelHistory() {
   const [historyData, setHistoryData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true); // 🔹 state loading
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        setLoading(true); // mulai loading
-        const response = await APIEndpoint.get(
-          `/api/historyusers?page=${currentPage}`
-        );
-        setHistoryData(response.data.data);
-        setTotalPages(response.data.last_page);
-        setCurrentPage(response.data.current_page);
+        setLoading(true);
+        const response = await APIEndpoint.get('/api/historyusers');
+        setHistoryData(response.data);
       } catch (error) {
         console.error('Error fetching history data:', error);
       } finally {
-        setLoading(false); // selesai loading
+        setLoading(false);
       }
     };
 
     fetchHistory();
-  }, [currentPage]);
+  }, []);
 
   // Filter pencarian (client-side)
   const filteredData = historyData.filter(
     (item) =>
-      item.user &&
-      item.user.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (item.user &&
+        item.user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.nama_user &&
+        item.nama_user.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Client-side pagination calculations
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   const handlePrevPage = () => {
@@ -50,8 +55,17 @@ export default function TabelHistory() {
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1); // reset halaman saat search
+    setCurrentPage(1); // Reset to first page on new search
   };
+
+  // Effect to reset page if it becomes invalid after filtering
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    } else if (currentPage === 0 && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm w-full">
@@ -86,15 +100,13 @@ export default function TabelHistory() {
                 Loading...
               </td>
             </tr>
-          ) : filteredData.length > 0 ? (
-            filteredData.map((item, i) => (
+          ) : paginatedData.length > 0 ? (
+            paginatedData.map((item, i) => (
               <tr key={i} className="border-t border-gray-200">
                 <td className="px-4 py-2">{item.tanggal}</td>
                 <td className="px-4 py-2">{item.jam}</td>
                 <td className="px-4 py-2">{item.keterangan}</td>
-                <td className="px-4 py-2">
-                  {item.user ? item.user.name : 'System'}
-                </td>
+                <td className="px-4 py-2">{item.nama_user}</td>
               </tr>
             ))
           ) : (
@@ -112,11 +124,10 @@ export default function TabelHistory() {
         <button
           onClick={handlePrevPage}
           disabled={currentPage === 1}
-          className={`border border-gray-300 px-3 py-1 rounded ${
-            currentPage === 1
-              ? 'opacity-50 cursor-not-allowed'
-              : 'hover:bg-gray-100'
-          }`}
+          className={`border border-gray-300 px-3 py-1 rounded ${currentPage === 1
+            ? 'opacity-50 cursor-not-allowed'
+            : 'hover:bg-gray-100'
+            }`}
         >
           Previous
         </button>
@@ -126,11 +137,10 @@ export default function TabelHistory() {
         <button
           onClick={handleNextPage}
           disabled={currentPage === totalPages || totalPages === 0}
-          className={`border border-gray-300 px-3 py-1 rounded ${
-            currentPage === totalPages || totalPages === 0
-              ? 'opacity-50 cursor-not-allowed'
-              : 'hover:bg-gray-100'
-          }`}
+          className={`border border-gray-300 px-3 py-1 rounded ${currentPage === totalPages || totalPages === 0
+            ? 'opacity-50 cursor-not-allowed'
+            : 'hover:bg-gray-100'
+            }`}
         >
           Next
         </button>

@@ -13,13 +13,14 @@ return new class extends Migration
     {
         Schema::create('history_users', function (Blueprint $table) {
             $table->id("id_history");
-            $table->unsignedBigInteger('id_user');
+            $table->unsignedBigInteger('id_user')->nullable(true);
+            $table->string("nama_user");
             $table->string('keterangan');
             $table->date('tanggal');
             $table->time('jam');
             $table->timestamps();
 
-            $table->foreign('id_user')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('id_user')->references('id')->on('users')->onDelete('set null');
         });
     }
 

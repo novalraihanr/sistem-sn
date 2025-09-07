@@ -107,7 +107,7 @@ export default function TabelStockOut() {
       nama_produk: product.nama_produk,
       nama_kategori: product.kategori_inv?.nama_kategori || "",
       produk_satuan: product.produk_satuan || "",
-      stokout_spesifikasi: product.spesifikasi || "",
+      stokout_spesifikasi: product.produk_spesifikasi || "",
       produk_minimum_stok: product.produk_minimum_stok || 0,
     }));
     setShowSuggestions(false);
@@ -381,7 +381,7 @@ export default function TabelStockOut() {
                         {item.inventori?.nama_produk}
                       </td>
                       <td className="py-2 px-4">{item.stokout_kuantitas}</td>
-                      <td className="py-2 px-4">{item.stokout_spesifikasi || "-"}</td>
+                      <td className="py-2 px-4">{item.stokout_spesifikasi || item.inventori?.spesifikasi || "-"}</td>
                       <td className="py-2 px-4">{item.inventori?.produk_satuan}</td>
                       <td className="py-2 px-4">{item.stokout_digunakan}</td>
                       <td className="py-2 px-4">{item.stokout_divisi}</td>

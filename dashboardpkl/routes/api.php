@@ -73,9 +73,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('inventori', InventoriController::class);
 
     Route::get('stok-in/summary', [StokInController::class, 'getSummary']);
+    Route::get('/stok-in/monthly-data', [StokInController::class, 'getMonthlyData']);
+    Route::get('/stok-in/years', [StokInController::class, 'getStokInYears']);
     Route::apiResource('stok-in', StokInController::class);
 
     Route::get('stok-out/summary', [StokOutController::class, 'getSummary']);
+    Route::get('/stok-out/monthly-data', [StokOutController::class, 'getMonthlyData']);
+    Route::get('/stok-out/years', [StokOutController::class, 'getStokOutYears']);
     Route::apiResource('stok-out', StokOutController::class);
 
     Route::get('kategori-part/{kategoriPart}/parts', [\App\Http\Controllers\KategoriPartController::class, 'getParts']);

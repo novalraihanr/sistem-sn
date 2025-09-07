@@ -193,4 +193,37 @@ class StokOutController extends Controller
             'latest_update' => $latestUpdate ? $latestUpdate : null,
         ]);
     }
+
+    public function getStokOutYears()
+    {
+        $years = StokOut::selectRaw('YEAR(stokin_tanggal) as year')
+            ->whereNotNull('stokin_tanggal')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
+        return response()->json($years);
+    }
+
+    public function getMonthlyData(Request $request)
+    {
+        $query = StokOut::query();
+        $year = $request->input('tahun');
+        $productName = $request->input('nama_produk');
+
+        if ($year && $year != 'Semua Tahun') {
+            $query->whereYear('stokin_tanggal', $year);
+        }
+
+        if ($productName && $productName != 'Semua Produk') {
+            $query->whereHas('inventori', function ($q) use ($productName) {
+                $q->where('nama_produk', $productName);
+            });
+        }
+
+        $data = $query->selectRaw('MONTH(stokin_tanggal) as month, SUM(stokout_kuantitas) as total_stok_out')
+            ->groupBy('month')
+            ->get();
+
+        return response()->json($data);
+    }
 }

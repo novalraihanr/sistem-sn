@@ -25,32 +25,59 @@ export default function StockSummary() {
 
   // Fetch Data
   useEffect(() => {
+    const fetchProductNames = async () => {
+      try {
+        const res = await APIEndpoint.get("/api/inventori/product-names");
+        setAvailableParts(["Semua Produk", ...res.data]);
+      } catch (error) {
+        console.error("Error fetching product names:", error);
+      }
+    };
+
+    const fetchYears = async () => {
+      try {
+        const [inYearsRes, outYearsRes] = await Promise.all([
+          APIEndpoint.get("/api/stok-in/years"),
+          APIEndpoint.get("/api/stok-out/years"),
+        ]);
+        const allYears = [
+          ...new Set([...inYearsRes.data, ...outYearsRes.data]),
+        ];
+        setAvailableYears(["Semua Tahun", ...allYears.sort((a, b) => b - a)]);
+      } catch (error) {
+        console.error("Error fetching years:", error);
+      }
+    };
+
+    fetchProductNames();
+    fetchYears();
+  }, []);
+
+  useEffect(() => {
     const fetchChartData = async () => {
       try {
-        const res = await APIEndpoint.get("/api/inventori/monthly-stock-data", {
-          params: {
-            nama_produk:
-              selectedProduct === "Semua Produk" ? null : selectedProduct,
-            tahun:
-              selectedYear === "Semua Tahun" ? null : parseInt(selectedYear, 10),
-          },
-        });
+        const params = {
+          nama_produk:
+            selectedProduct === "Semua Produk" ? null : selectedProduct,
+          tahun:
+            selectedYear === "Semua Tahun"
+              ? null
+              : parseInt(selectedYear, 10),
+        };
 
-        const monthlyData = res.data;
-
-        const yearsFromData = [
-          ...new Set(monthlyData.map((item) => item.tahun)), //INI GA ADA TAHUNNYA
-        ];
-        setAvailableYears([
-          "Semua Tahun",
-          ...yearsFromData.sort((a, b) => b - a),
+        const [resIn, resOut] = await Promise.all([
+          APIEndpoint.get("/api/stok-in/monthly-data", { params }),
+          APIEndpoint.get("/api/stok-out/monthly-data", { params }),
         ]);
 
         const inData = Array(12).fill(0);
         const outData = Array(12).fill(0);
 
-        monthlyData.forEach((item) => {
+        resIn.data.forEach((item) => {
           inData[item.month - 1] = item.total_stok_in;
+        });
+
+        resOut.data.forEach((item) => {
           outData[item.month - 1] = item.total_stok_out;
         });
 
@@ -61,17 +88,7 @@ export default function StockSummary() {
       }
     };
 
-    const fetchProductNames = async () => {
-      try {
-        const res = await APIEndpoint.get("/api/inventori/product-names");
-        setAvailableParts(["Semua Produk", ...res.data]);
-      } catch (error) {
-        console.error("Error fetching product names:", error);
-      }
-    };
-
     fetchChartData();
-    fetchProductNames();
   }, [selectedProduct, selectedYear]);
 
   // Tutup dropdown kalau klik di luar
