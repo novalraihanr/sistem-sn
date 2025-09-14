@@ -251,6 +251,72 @@ class VendorPartController extends Controller
         }
     }
 
+    public function addMultiplePartsToVendor(Request $request, int $vendorId)
+    {
+        $validated = $request->validate([
+            'parts' => 'required|array|min:1',
+            'parts.*.part_name' => 'required|string|max:255',
+            'parts.*.kategori_name' => 'required|string|max:255',
+            'parts.*.merk_part' => 'required|string|max:255',
+            'parts.*.harga_part' => 'required|numeric|min:0',
+            'parts.*.satuan_part' => 'required|string|max:255',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $user = Auth::user();
+            $vendor = Vendor::findOrFail($vendorId);
+
+            foreach ($validated['parts'] as $item) {
+                $part = Part::where(DB::raw('LOWER(nama_part)'), strtolower($item['part_name']))
+                    ->whereHas('vendors', function ($query) use ($item) {
+                        $query->where(DB::raw('LOWER(merk_part)'), strtolower($item['merk_part']));
+                    })
+                    ->first();
+
+                if (!$part) {
+                    $kategori = KategoriPart::firstOrCreate(['nama_kategori' => $item['kategori_name']]);
+                    $part = Part::create([
+                        'nama_part' => $item['part_name'],
+                        'id_kategori_part' => $kategori->id_kategori_part,
+                    ]);
+                }
+
+                $partId = $part->id_part;
+
+                $pivotData = [
+                    'harga_part' => $item['harga_part'],
+                    'merk_part' => $item['merk_part'],
+                    'satuan_part' => $item['satuan_part'],
+                ];
+
+                $existingPivot = $vendor->parts()->where('vendor_part.id_part', $partId)->first();
+
+                if ($existingPivot) {
+                    $pivotData['harga_sebelumnya_part'] = $existingPivot->pivot->harga_part;
+                }
+
+                $vendor->parts()->syncWithoutDetaching([$partId => $pivotData]);
+
+                if ($user) {
+                    HistoryUsersController::record("{$user->name} telah menambahkan part {$part->nama_part} ke vendor {$vendor->nama_vendor}");
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Successfully added/updated parts to vendor.',
+                'vendor' => $vendor->load('parts'),
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'An error occurred while adding parts.', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     /**
      * Detach a part from a vendor and then delete the part.
      */

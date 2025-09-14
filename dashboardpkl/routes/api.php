@@ -43,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('vendor-part/createnew', [VendorPartController::class, 'store']);
     Route::put('vendor-part/changeharga/{vendorId}/{partId}', [VendorPartController::class, 'update']);
     Route::post('vendor-part/{vendorId}/part', [VendorPartController::class, 'addPartToVendor']);
+    Route::post('vendor-part/{vendorId}/multi', [VendorPartController::class, 'addMultiplePartsToVendor']);
     Route::delete('vendor-part/{vendorId}/{partId}', [VendorPartController::class, 'destroy']);
     Route::get('vendor-part/{id}/parts', [VendorPartController::class, 'getVendorParts']);
     Route::get('vendor/{id}/parts/search/{partName}', [VendorPartController::class, 'searchVendorParts']);
@@ -54,8 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('transaksi-vendor/{id}', [TransaksiVendorController::class, 'show']);
     Route::get('transaksi-vendor/recent/vendor', [TransaksiVendorController::class, 'getRecentTransactions']);
 
-    Route::get('vendor/{id}/parts', [VendorController::class, 'getVendorParts']);
-    Route::post('vendor/{id}/parts', [VendorPartController::class, 'addPartToVendor']);
+    
     Route::get('part/{id}/vendors', [VendorPartController::class, 'getPartVendors']);
 
     // Units Route
