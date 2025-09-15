@@ -12,16 +12,25 @@ export default function HistoryInvDetail() {
   const [selectedMonth, setSelectedMonth] = useState("Semua Bulan");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [loading, setLoading] = useState(true); // 🔹 state loading
   const itemsPerPage = 30;
 
   useEffect(() => {
     if (year) {
       const fetchData = async () => {
         try {
-          const response = await APIEndpoint.get(`/api/history-inventori/${year}`);
+          setLoading(true); // mulai loading
+          const response = await APIEndpoint.get(
+            `/api/history-inventori/${year}`
+          );
           setHistoryData(response.data);
         } catch (error) {
-          console.error(`Failed to fetch history data for year ${year}:`, error);
+          console.error(
+            `Failed to fetch history data for year ${year}:`,
+            error
+          );
+        } finally {
+          setLoading(false); // selesai loading
         }
       };
       fetchData();
@@ -32,32 +41,29 @@ export default function HistoryInvDetail() {
     if (isDownloading) return;
     setIsDownloading(true);
 
-    // Convert month name to month number. "Semua Bulan" will be 0.
     const monthIndex = categories.indexOf(selectedMonth);
-    const monthParam = monthIndex > 0 ? `?month=${monthIndex}` : '';
+    const monthParam = monthIndex > 0 ? `?month=${monthIndex}` : "";
 
     try {
-      // Use axios directly for specific configuration needed for file download
       const response = await APIEndpoint.get(
         `http://localhost:8000/api/report/inventory/${year}/download${monthParam}`,
         {
-          withCredentials: true, // Crucial for sending session cookies
-          responseType: 'blob',    // Crucial for receiving file data
+          withCredentials: true,
+          responseType: "blob",
         }
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
 
-      const monthStr = monthIndex > 0 ? `-bulan-${monthIndex}` : '';
-      link.setAttribute('download', `inventory-report-${year}${monthStr}.pdf`);
+      const monthStr = monthIndex > 0 ? `-bulan-${monthIndex}` : "";
+      link.setAttribute("download", `inventory-report-${year}${monthStr}.pdf`);
 
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
-
     } catch (error) {
       console.error("Download failed:", error);
     } finally {
@@ -67,11 +73,21 @@ export default function HistoryInvDetail() {
 
   const categories = [
     "Semua Bulan",
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
   ];
 
-  const filteredData = historyData.filter(item => {
+  const filteredData = historyData.filter((item) => {
     if (selectedMonth === "Semua Bulan") return true;
     const monthIndex = new Date(item.bulan_sekarang).getMonth();
     return categories[monthIndex + 1] === selectedMonth;
@@ -95,14 +111,23 @@ export default function HistoryInvDetail() {
             <div className="flex gap-x-3">
               {/* Filter Bulan */}
               <div className="relative flex items-center justify-center border border-[#D0D3D9] rounded-sm hover:bg-gray-100 px-3 py-2 gap-x-2">
-                <img src="/icons/Dashboard/Filter.svg" alt="filter" className="w-4 h-4" />
+                <img
+                  src="/icons/Dashboard/Filter.svg"
+                  alt="filter"
+                  className="w-4 h-4"
+                />
                 <select
                   value={selectedMonth}
-                  onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }}
+                  onChange={(e) => {
+                    setSelectedMonth(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="text-sm text-[#5D6679] bg-transparent focus:outline-none appearance-none text-center truncate"
                 >
                   {categories.map((cat, i) => (
-                    <option key={i} value={cat}>{cat}</option>
+                    <option key={i} value={cat}>
+                      {cat}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -113,7 +138,7 @@ export default function HistoryInvDetail() {
                 disabled={isDownloading}
                 className="text-sm text-[#5D6679] border border-[#D0D3D9] px-3 py-2 rounded-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isDownloading ? 'Downloading...' : 'Download'}
+                {isDownloading ? "Downloading..." : "Download"}
               </button>
             </div>
           </div>
@@ -136,7 +161,13 @@ export default function HistoryInvDetail() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.length === 0 ? (
+                {loading ? ( // 🔹 tampilkan tulisan loading
+                  <tr>
+                    <td colSpan={10} className="text-center py-4 text-gray-500">
+                      Loading Data...
+                    </td>
+                  </tr>
+                ) : paginatedData.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="text-center py-4 text-gray-500">
                       Tidak ada data ditemukan
@@ -144,7 +175,10 @@ export default function HistoryInvDetail() {
                   </tr>
                 ) : (
                   paginatedData.map((item, index) => (
-                    <tr key={index} className="border-b text-[#383E49] border-[#D0D3D9]">
+                    <tr
+                      key={index}
+                      className="border-b text-[#383E49] border-[#D0D3D9]"
+                    >
                       <td className="py-2 px-4">{item.nama_produk}</td>
                       <td className="py-2 px-4">{item.kategori}</td>
                       <td className="py-2 px-4">{item.stok_awal}</td>
@@ -152,7 +186,9 @@ export default function HistoryInvDetail() {
                       <td className="py-2 px-4">{item.stok_out}</td>
                       <td className="py-2 px-4">{item.stok_akhir}</td>
                       <td className="py-2 px-4">{item.produk_satuan}</td>
-                      <td className="py-2 px-4 text-center">{item.produk_minimum_stok}</td>
+                      <td className="py-2 px-4 text-center">
+                        {item.produk_minimum_stok}
+                      </td>
                       <td className="py-2 px-4">{item.spesifikasi}</td>
                       <td className="py-2 px-4">{item.bulan_sekarang}</td>
                     </tr>
@@ -162,23 +198,37 @@ export default function HistoryInvDetail() {
             </table>
 
             {/* Pagination */}
-            <div className="flex justify-between items-center mt-4 px-4 text-sm text-[#5D6679] p-4">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                Previous
-              </button>
-              <span>Page {currentPage} of {totalPages}</span>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                Next
-              </button>
-            </div>
+            {!loading && (
+              <div className="flex justify-between items-center mt-4 px-4 text-sm text-[#5D6679] p-4">
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
+                  disabled={currentPage === 1}
+                  className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+                    currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+                    currentPage === totalPages
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </main>

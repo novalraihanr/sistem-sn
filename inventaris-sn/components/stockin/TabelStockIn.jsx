@@ -328,9 +328,6 @@ export default function TabelStockIn() {
                   </select>
                 </div>
               </div>
-              <button className="border border-[#D0D3D9] px-3 py-2 text-sm text-[#5D6679] rounded-sm hover:bg-gray-100">
-                Download all
-              </button>
             </div>
           </div>
 

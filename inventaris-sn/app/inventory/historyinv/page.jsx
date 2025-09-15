@@ -8,24 +8,27 @@ import APIEndpoint from "@/app/api/api";
 export default function HistoryInv() {
   const router = useRouter();
   const [years, setYears] = useState([]);
+  const [loading, setLoading] = useState(true); 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 30;
 
   useEffect(() => {
     const fetchYears = async () => {
-        try {
-            const response = await APIEndpoint.get('/api/history-inventori/years');
-            setYears(response.data.map(year => ({ tahun: year })));
-        } catch (error) {
-            console.error('Failed to fetch history years:', error);
-        }
+      try {
+        const response = await APIEndpoint.get("/api/history-inventori/years");
+        setYears(response.data.map((year) => ({ tahun: year })));
+      } catch (error) {
+        console.error("Failed to fetch history years:", error);
+      } finally {
+        setLoading(false); 
+      }
     };
 
     fetchYears();
   }, []);
 
   // Pagination logic
-  const totalPages = Math.ceil(years.length / itemsPerPage);
+  const totalPages = Math.ceil(years.length / itemsPerPage) || 1;
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const paginatedItems = years.slice(indexOfFirstItem, indexOfLastItem);
@@ -41,6 +44,7 @@ export default function HistoryInv() {
               History Inventori
             </h2>
           </div>
+
           {/* Tabel */}
           <div className="overflow-x-auto">
             <table className="min-w-full table-auto text-sm text-left">
@@ -51,25 +55,40 @@ export default function HistoryInv() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedItems.map((item, index) => (
-                  <tr
-                    key={`${item.tahun}-${index}`}
-                    className="border-t border-[#E5E7EB]"
-                  >
-                    <td className="py-2 px-4">{item.tahun}</td>
-                    <td className="py-2 px-4">
-                      <button
-                        className="bg-[#1366D9] text-white px-3 py-1 rounded text-sm hover:bg-[#1570EF]"
-                        onClick={() => router.push(`/inventory/historyinv/${item.tahun}`)}
-                      >
-                        Lihat Detail
-                      </button>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="text-center py-4 text-gray-400"
+                    >
+                      Loading Data...
                     </td>
                   </tr>
-                ))}
-                {paginatedItems.length === 0 && (
+                ) : paginatedItems.length > 0 ? (
+                  paginatedItems.map((item, index) => (
+                    <tr
+                      key={`${item.tahun}-${index}`}
+                      className="border-t border-[#E5E7EB]"
+                    >
+                      <td className="py-2 px-4">{item.tahun}</td>
+                      <td className="py-2 px-4">
+                        <button
+                          className="bg-[#1366D9] text-white px-3 py-1 rounded text-sm hover:bg-[#1570EF]"
+                          onClick={() =>
+                            router.push(`/inventory/historyinv/${item.tahun}`)
+                          }
+                        >
+                          Lihat Detail
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
                   <tr>
-                    <td colSpan={2} className="text-center py-4 text-gray-400">
+                    <td
+                      colSpan={2}
+                      className="text-center py-4 text-gray-400"
+                    >
                       Data tidak tersedia.
                     </td>
                   </tr>
@@ -77,32 +96,39 @@ export default function HistoryInv() {
               </tbody>
             </table>
           </div>
+
           {/* Pagination */}
-          <div className="flex justify-between items-center mt-4 px-4 text-sm text-[#5D6679] p-4">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+          {!loading && (
+            <div className="flex justify-between items-center mt-4 px-4 text-sm text-[#5D6679] p-4">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+                  currentPage === 1
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
                 }`}
-            >
-              Previous
-            </button>
-            <span>
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-              className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${currentPage === totalPages
-                ? "opacity-50 cursor-not-allowed"
-                : ""
+              >
+                Previous
+              </button>
+              <span>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className={`border border-[#D0D3D9] px-3 py-1 rounded-sm hover:bg-gray-100 ${
+                  currentPage === totalPages
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
                 }`}
-            >
-              Next
-            </button>
-          </div>
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </main>
     </div>
