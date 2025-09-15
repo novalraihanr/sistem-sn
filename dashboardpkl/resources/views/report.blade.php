@@ -257,30 +257,30 @@
     </section>
 
     <!-- Signature -->
-    <section class="signature-section">
-      <p class="date-line">Sidoarjo, {{ $tanggal ?? now()->format('d F Y') }}</p>
-      <table class="signature-table">
-        <tr>
-          <td>
-            <p class="name">RIZKI OKTAVIAN</p>
-            <p class="title">Adm. Umum</p>
-          </td>
-          <td>
-            <p class="name">DANI ANWAR</p>
-            <p class="title">Adm. Umum</p>
-          </td>
-          <td>
-            <p class="name">FIRMAN A.</p>
-            <p class="title">Koordinator Umum</p>
-          </td>
-          <td>
-            <p class="name">BENNY A.</p>
-            <p class="title">KADIV. UMUM</p>
-          </td>
-        </tr>
-      </table>
-    </section>
-  </main>
+  <!--   <section class="signature-section"> -->
+  <!--     <p class="date-line">Sidoarjo, {{ $tanggal ?? now()->format('d F Y') }}</p> -->
+  <!--     <table class="signature-table"> -->
+  <!--       <tr> -->
+  <!--         <td> -->
+  <!--           <p class="name">RIZKI OKTAVIAN</p> -->
+  <!--           <p class="title">Adm. Umum</p> -->
+  <!--         </td> -->
+  <!--         <td> -->
+  <!--           <p class="name">DANI ANWAR</p> -->
+  <!--           <p class="title">Adm. Umum</p> -->
+  <!--         </td> -->
+  <!--         <td> -->
+  <!--           <p class="name">FIRMAN A.</p> -->
+  <!--           <p class="title">Koordinator Umum</p> -->
+  <!--         </td> -->
+  <!--         <td> -->
+  <!--           <p class="name">BENNY A.</p> -->
+  <!--           <p class="title">KADIV. UMUM</p> -->
+  <!--         </td> -->
+  <!--       </tr> -->
+  <!--     </table> -->
+  <!--   </section> -->
+  <!-- </main> -->
 
   <!-- Footer -->
   <footer class="report-footer report-container">

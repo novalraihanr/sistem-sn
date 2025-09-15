@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { logout, getUser } from "@/app/api/auth.jsx";
 import { useEffect, useState } from "react";
+import APIEndpoint from "@/app/api/api";
 
 const navItemsMain = [
   // Inventory Management
@@ -103,6 +104,26 @@ export default function Sidebar() {
     };
 
     fetchUserRole();
+  }, []);
+
+  useEffect(() => {
+    const runArchive = async () => {
+      try {
+        const response = await APIEndpoint.post('/api/inventori/trigger-archive');
+        console.log('Archive status:', response.data.message);
+        // If successful, store today's date
+        localStorage.setItem('lastArchiveRun', new Date().toISOString().split('T')[0]);
+      } catch (error) {
+        console.error('Failed to trigger inventory archive:', error);
+      }
+    };
+
+    const lastRun = localStorage.getItem('lastArchiveRun');
+    const today = new Date().toISOString().split('T')[0];
+
+    if (lastRun !== today) {
+      runArchive();
+    }
   }, []);
 
   const handleLogout = async () => {

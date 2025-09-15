@@ -55,6 +55,8 @@ class HistoryInventoriController extends Controller
                 }
             }
 
+            Inventori::query()->update(['bulan_sekarang' => Carbon::now()]);
+
             DB::commit();
 
             return response()->json([

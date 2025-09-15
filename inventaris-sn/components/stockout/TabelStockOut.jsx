@@ -26,6 +26,7 @@ export default function TabelStockOut() {
     stokout_keterangan: "",
     stokin_tanggal: "",
     produk_minimum_stok: 0,
+    stok_sekarang: "",
   });
   const [productSuggestions, setProductSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -107,8 +108,9 @@ export default function TabelStockOut() {
       nama_produk: product.nama_produk,
       nama_kategori: product.kategori_inv?.nama_kategori || "",
       produk_satuan: product.produk_satuan || "",
-      stokout_spesifikasi: product.produk_spesifikasi || "",
+      stokout_spesifikasi: product.spesifikasi || "",
       produk_minimum_stok: product.produk_minimum_stok || 0,
+      stok_sekarang: product.stok_akhir,
     }));
     setShowSuggestions(false);
   };
@@ -210,6 +212,7 @@ export default function TabelStockOut() {
       stokout_keterangan: "",
       stokin_tanggal: "",
       produk_minimum_stok: 0,
+      stok_sekarang: "",
     });
   };
 
@@ -219,6 +222,13 @@ export default function TabelStockOut() {
       name: "nama_kategori",
       placeholder: "Data dari produk",
       readOnly: true,
+    },
+    {
+      label: "Stok Sekarang",
+      name: "stok_sekarang",
+      placeholder: "Data dari produk",
+      readOnly: true,
+      type: "number",
     },
     {
       label: "Kuantitas",

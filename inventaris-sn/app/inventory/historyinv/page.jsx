@@ -12,15 +12,6 @@ export default function HistoryInv() {
   const itemsPerPage = 30;
 
   useEffect(() => {
-    const runArchive = async () => {
-      try {
-        const response = await APIEndpoint.post('/api/inventori/trigger-archive');
-        console.log('Archive status:', response.data.message);
-      } catch (error) {
-        console.error('Failed to trigger inventory archive:', error);
-      }
-    };
-
     const fetchYears = async () => {
         try {
             const response = await APIEndpoint.get('/api/history-inventori/years');
@@ -30,7 +21,6 @@ export default function HistoryInv() {
         }
     };
 
-    runArchive();
     fetchYears();
   }, []);
 

@@ -107,7 +107,7 @@ export default function TabelStockIn() {
       nama_produk: product.nama_produk,
       nama_kategori: product.kategori_inv?.nama_kategori || "",
       produk_satuan: product.produk_satuan || "",
-      stokin_spesifikasi: product.produk_spesifikasi || "",
+      stokin_spesifikasi: product.spesifikasi || "",
     }));
     setShowSuggestions(false);
   };
