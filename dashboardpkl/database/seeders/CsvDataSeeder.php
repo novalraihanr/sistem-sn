@@ -7,6 +7,10 @@ use App\Models\KategoriInv;
 use App\Models\Inventori;
 use App\Models\StokIn;
 use App\Models\StokOut;
+use App\Models\KategoriPart;
+use App\Models\Part;
+use App\Models\Vendor;
+use App\Models\VendorPart;
 use League\Csv\Reader;
 use Illuminate\Support\Facades\DB;
 
@@ -116,6 +120,86 @@ class CsvDataSeeder extends Seeder
                 $this->command->info('StokOut data imported.');
             } else {
                 $this->command->warn('stok_out.csv not found in csv/ folder. Skipping StokOut import.');
+            }
+
+            // Process kategori_part.csv
+            $kategoriPartCsvPath = database_path('csv/kategori_part.csv');
+            if (file_exists($kategoriPartCsvPath)) {
+                $csv = Reader::createFromPath($kategoriPartCsvPath, 'r');
+                $csv->setHeaderOffset(0);
+                foreach ($csv->getRecords() as $record) {
+                    KategoriPart::updateOrCreate(
+                        ['id_kategori_part' => $record['id_kategori_part']],
+                        ['nama_kategori' => $record['nama_kategori']]
+                    );
+                }
+                $this->command->info('KategoriPart data imported.');
+            } else {
+                $this->command->warn('kategori_part.csv not found. Skipping KategoriPart import.');
+            }
+
+            // Process part.csv
+            $partCsvPath = database_path('csv/part.csv');
+            if (file_exists($partCsvPath)) {
+                $csv = Reader::createFromPath($partCsvPath, 'r');
+                $csv->setHeaderOffset(0);
+                foreach ($csv->getRecords() as $record) {
+                    Part::updateOrCreate(
+                        ['id_part' => $record['id_part']],
+                        [
+                            'id_kategori_part' => $record['id_kategori_part'],
+                            'nama_part' => $record['nama_part'],
+                        ]
+                    );
+                }
+                $this->command->info('Part data imported.');
+            } else {
+                $this->command->warn('part.csv not found. Skipping Part import.');
+            }
+
+            // Process vendor.csv
+            $vendorCsvPath = database_path('csv/vendor.csv');
+            if (file_exists($vendorCsvPath)) {
+                $csv = Reader::createFromPath($vendorCsvPath, 'r');
+                $csv->setHeaderOffset(0);
+                foreach ($csv->getRecords() as $record) {
+                    Vendor::updateOrCreate(
+                        ['id_vendor' => $record['id_vendor']],
+                        [
+                            'nama_vendor' => $record['nama_vendor'],
+                            'alamat_vendor' => $record['alamat_vendor'],
+                            'kontak_vendor' => $record['kontak_vendor'],
+                            'createdby' => $record['created_by'],
+                            'updatedby' => $record['updated_by']
+                        ]
+                    );
+                }
+                $this->command->info('Vendor data imported.');
+            } else {
+                $this->command->warn('vendor.csv not found. Skipping Vendor import.');
+            }
+
+            // Process vendor_part.csv
+            $vendorPartCsvPath = database_path('csv/vendor_part.csv');
+            if (file_exists($vendorPartCsvPath)) {
+                $csv = Reader::createFromPath($vendorPartCsvPath, 'r');
+                $csv->setHeaderOffset(0);
+                foreach ($csv->getRecords() as $record) {
+                    VendorPart::updateOrCreate(
+                        ['id_vendorpart' => $record['id_vendorpart']],
+                        [
+                            'id_part' => $record['id_part'],
+                            'id_vendor' => $record['id_vendor'],
+                            'harga_part' => $record['harga_part'],
+                            'harga_sebelumnya_part' => $record['harga_sebelumnya_part'],
+                            'merk_part' => $record['merk_part'],
+                            'satuan_part' => $record['satuan_part'],
+                        ]
+                    );
+                }
+                $this->command->info('VendorPart data imported.');
+            } else {
+                $this->command->warn('vendor_part.csv not found. Skipping VendorPart import.');
             }
 
             $this->command->info('All CSV data import attempts completed.');

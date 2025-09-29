@@ -374,7 +374,7 @@ export default function DetailVendor() {
                             />
                           ) : (
                             <div>
-                              {item.pivot?.harga_sebelumnya_part &&
+                              {item.pivot?.harga_sebelumnya_part > 0 &&
                                 item.pivot.harga_part !==
                                 item.pivot.harga_sebelumnya_part && (
                                   <span
