@@ -92,19 +92,22 @@ export default function Sidebar() {
   const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const checkUserLoggedIn = async () => {
       try {
         const response = await getUser();
         if (response.data && response.data.role) {
           setUserRole(response.data.role);
+        } else {
+          router.push("/");
         }
       } catch (error) {
-        console.error("Failed to fetch user data for sidebar:", error);
+        console.error("Authentication check failed, redirecting to login page.");
+        router.push("/");
       }
     };
 
-    fetchUserRole();
-  }, []);
+    checkUserLoggedIn();
+  }, [router]);
 
   useEffect(() => {
     const runArchive = async () => {
