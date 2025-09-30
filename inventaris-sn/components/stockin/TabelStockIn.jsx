@@ -208,7 +208,7 @@ export default function TabelStockIn() {
 
   const formFields = [
     {
-      label: "Nama Kategori",
+      label: "Nama Spesifikasi",
       name: "nama_kategori",
       placeholder: "Data dari produk",
       readOnly: true,
@@ -222,7 +222,7 @@ export default function TabelStockIn() {
     {
       label: "Satuan",
       name: "produk_satuan",
-      placeholder: "Data dari produk",
+      placeholder: "Data dari produk", 
       readOnly: true,
     },
     {
@@ -373,7 +373,7 @@ export default function TabelStockIn() {
                       </td>
                       <td className="py-2 px-4">{item.stokin_kuantitas}</td>
                       <td className="py-2 px-4">{item.inventori?.produk_satuan}</td>
-                      <td className="py-2 px-4">{item.stokin_spesifikasi || item.inventori?.spesifikasi || "-"}</td>
+                      <td className="py-2 px-4">{item.inventori?.kategori_inv.nama_kategori || "-"}</td>
                       <td className="py-2 px-4">{item.stokin_nopomo}</td>
                       <td className="py-2 px-4">{item.stokin_digunakan}</td>
                       <td className="py-2 px-4">

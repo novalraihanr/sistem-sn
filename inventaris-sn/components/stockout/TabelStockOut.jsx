@@ -218,7 +218,7 @@ export default function TabelStockOut() {
 
   const formFields = [
     {
-      label: "Nama Kategori",
+      label: "Nama Spesifikasi",
       name: "nama_kategori",
       placeholder: "Data dari produk",
       readOnly: true,
@@ -350,7 +350,7 @@ export default function TabelStockOut() {
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm text-left">
-              <thead className="text-[#5D6679] border-b border-[#D0D3D9]">
+              <thead className="text-[#5D6679] border-b border-[#D0D3D9]"> 
                 <tr>
                   <th className="py-2 px-4">Tanggal</th>
                   <th className="py-2 px-4">Nama Produk</th>
@@ -388,7 +388,7 @@ export default function TabelStockOut() {
                         {item.inventori?.nama_produk}
                       </td>
                       <td className="py-2 px-4">{item.stokout_kuantitas}</td>
-                      <td className="py-2 px-4">{item.stokout_spesifikasi || item.inventori?.spesifikasi || "-"}</td>
+                      <td className="py-2 px-4">{item.inventori?.kategori_inv.nama_kategori || "-"}</td>
                       <td className="py-2 px-4">{item.inventori?.produk_satuan}</td>
                       <td className="py-2 px-4">{item.stokout_digunakan}</td>
                       <td className="py-2 px-4">{item.stokout_divisi}</td>

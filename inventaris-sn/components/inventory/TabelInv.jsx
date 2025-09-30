@@ -199,9 +199,9 @@ export default function TabelInv() {
       type: "number",
     },
     {
-      label: "Spesifikasi",
+      label: "Keterangan",
       name: "spesifikasi",
-      placeholder: "Masukan spesifikasi produk",
+      placeholder: "Masukan keterangan produk",
       type: "text",
     },
   ];
@@ -304,14 +304,14 @@ export default function TabelInv() {
               <thead className="text-[#5D6679] border-b border-[#D0D3D9]">
                 <tr>
                   <th className="py-2 px-4">Nama Produk</th>
-                  <th className="py-2 px-4">Kategori</th>
+                  <th className="py-2 px-4">Spesifikasi</th>
                   <th className="py-2 px-4">Stock Awal</th>
                   <th className="py-2 px-4">Stock In</th>
                   <th className="py-2 px-4">Stock Out</th>
                   <th className="py-2 px-4">Stock Akhir</th>
                   <th className="py-2 px-4">Satuan</th>
                   <th className="py-2 px-4">Minimum Stock</th>
-                  <th className="py-2 px-4">Spesifikasi</th>
+                  <th className="py-2 px-4">Keterangan</th>
                   <th className="py-2 px-4">Status</th>
                 </tr>
               </thead>
@@ -431,12 +431,12 @@ export default function TabelInv() {
 
                   <div className="relative flex flex-col gap-1">
                     <label className="text-sm text-gray-700">
-                      Nama Kategori
+                      Nama Spesifikasi
                     </label>
                     <input
                       type="text"
                       name="nama_kategori"
-                      placeholder="Masukan nama kategori"
+                      placeholder="Masukan nama spesifikasi"
                       value={newItem.nama_kategori || ""}
                       onChange={handleInputChange}
                       onFocus={() => {
