@@ -76,16 +76,15 @@ class AuthController extends Controller
                 'role' => 'member', // Use provided role, default to 'member'
             ]);
 
-            // Conditional login/response based on whether an admin is logged in
-            if (!Auth::check()) { // If no user is currently authenticated (self-registration)
-                Auth::login($user); // Log in the newly created user
+            if (!Auth::check()) {
+                Auth::login($user);
                 return response()->json([
-                    'user' => Auth::user(), // Return the authenticated user
+                    'user' => Auth::user(),
                 ], 201);
             } else { // If an admin is authenticated
                 return response()->json([
                     'message' => 'User registered successfully by admin.',
-                    'user' => $user, // Return the newly created user (not the admin)
+                    'user' => $user,
                 ], 201);
             }
 

@@ -11,27 +11,16 @@ use Carbon\Carbon;
 
 class HistoryUsersController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         return response()->json(HistoryUsers::with('user')->latest()->get());
     }
 
-
-
-    /**
-     * Display the specified resource.
-     */
     public function show(HistoryUsers $historyUser)
     {
         return response()->json($historyUser->load('user'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, HistoryUsers $historyUser)
     {
         $request->validate([
@@ -43,9 +32,6 @@ class HistoryUsersController extends Controller
         return response()->json($historyUser);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(HistoryUsers $historyUser)
     {
         $historyUser->delete();

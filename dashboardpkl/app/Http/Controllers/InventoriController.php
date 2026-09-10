@@ -14,18 +14,12 @@ use Illuminate\Support\Facades\Cache;
 
 class InventoriController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         $inventori = Inventori::with('kategoriInv')->get();
         return response()->json($inventori);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -65,18 +59,12 @@ class InventoriController extends Controller
         return response()->json($inventori, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         $inventori = Inventori::with('kategoriInv')->findOrFail($id);
         return response()->json($inventori);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $inventori = Inventori::findOrFail($id);
@@ -91,7 +79,6 @@ class InventoriController extends Controller
             'spesifikasi' => 'sometimes|string|max:255',
         ]);
 
-        // Find or create the KategoriInv if nama_kategori is provided
         if (isset($validated['nama_kategori'])) {
             $kategori = \App\Models\KategoriInv::firstOrCreate(
                 ['nama_kategori' => $validated['nama_kategori']]
@@ -101,10 +88,8 @@ class InventoriController extends Controller
 
         $inventori->fill($validated);
 
-        // Always recalculate stok_akhir to ensure consistency
         $inventori->stok_akhir = $inventori->stok_awal + $inventori->stok_in - $inventori->stok_out;
 
-        // Update produk_status based on the new stok_akhir
         if ($inventori->stok_akhir <= $inventori->produk_minimum_stok + 2) {
             $inventori->produk_status = 'Need Order';
         } elseif ($inventori->stok_akhir > $inventori->produk_minimum_stok) {
@@ -113,7 +98,7 @@ class InventoriController extends Controller
             $inventori->produk_status = 'By Order';
         }
 
-        $inventori->save(); // Save all changes at once
+        $inventori->save();
 
         $user = Auth::user();
         if ($user) {
@@ -123,9 +108,6 @@ class InventoriController extends Controller
         return response()->json($inventori);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $inventori = Inventori::findOrFail($id);
