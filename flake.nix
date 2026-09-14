@@ -13,10 +13,11 @@
 				# Backend - Laravel
 				pkgs.php83
 				pkgs.php83Packages.composer
+				pkgs.phpactor
 
 				# Frontend - Next.js
-				pkgs.nodejs_20
-				pkgs.nodePackages.pnpm
+				pkgs.nodejs_22
+				pkgs.pnpm
 
 				pkgs.unzip
 				pkgs.gnumake
